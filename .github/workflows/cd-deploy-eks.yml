@@ -1,0 +1,141 @@
+name: CD - Deploy to EKS
+
+on:
+  workflow_run:
+    workflows: ["CI - Build and Push to ECR"]
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'prod'
+        type: choice
+        options:
+          - dev
+          - prod
+
+env:
+  AWS_REGION: us-east-1
+  EKS_CLUSTER_NAME: cloudshelf-eks
+
+jobs:
+  deploy:
+    name: Deploy to EKS
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
+
+      - name: Verify cluster access
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Update image tags in manifests
+        run: |
+          cd spring-microservices-bookstore-demo/kubernetes
+          
+          # Update all deployment files with latest tag
+          find 04-services -name "deployment.yaml" -type f -exec sed -i \
+            's|image: shpro123/|image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/cloudshelf/|g' {} +
+
+      - name: Deploy namespace
+        run: |
+          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/00-namespace/
+
+      - name: Deploy secrets
+        run: |
+          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/02-secrets/
+
+      - name: Deploy ConfigMaps
+        run: |
+          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/01-configmaps/
+
+      - name: Deploy infrastructure (MongoDB, Kafka, Zipkin)
+        run: |
+          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/03-infrastructure/
+          
+          # Wait for infrastructure to be ready
+          echo "Waiting for MongoDB..."
+          kubectl wait --for=condition=ready pod -l app=mongodb -n cloudshelf --timeout=300s
+          
+          echo "Waiting for Kafka..."
+          kubectl wait --for=condition=ready pod -l app=kafka -n cloudshelf --timeout=300s
+
+      - name: Deploy microservices
+        run: |
+          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/04-services/
+          
+          # Wait for deployments to be ready
+          kubectl wait --for=condition=available --timeout=600s \
+            deployment/api-gateway \
+            deployment/book-service \
+            deployment/author-service \
+            deployment/order-service \
+            deployment/stock-check-service \
+            deployment/message-service \
+            deployment/frontend \
+            -n cloudshelf
+
+      - name: Deploy ingress
+        run: |
+          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/05-ingress/
+
+      - name: Verify deployment
+        run: |
+          echo "=== Pods Status ==="
+          kubectl get pods -n cloudshelf
+          
+          echo "=== Services Status ==="
+          kubectl get services -n cloudshelf
+          
+          echo "=== Deployments Status ==="
+          kubectl get deployments -n cloudshelf
+          
+          echo "=== Ingress Status ==="
+          kubectl get ingress -n cloudshelf
+
+      - name: Get Application URL
+        run: |
+          echo "Waiting for Load Balancer..."
+          sleep 60
+          
+          INGRESS_URL=$(kubectl get ingress cloudshelf-ingress -n cloudshelf -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          
+          if [ -n "$INGRESS_URL" ]; then
+            echo "✅ Application deployed successfully!"
+            echo "🌐 Application URL: http://$INGRESS_URL"
+          else
+            echo "⚠️ Load Balancer URL not ready yet. Check later with:"
+            echo "kubectl get ingress -n cloudshelf"
+          fi
+
+      - name: Deployment Summary
+        run: |
+          echo "=== Deployment Summary ==="
+          echo "Cluster: ${{ env.EKS_CLUSTER_NAME }}"
+          echo "Region: ${{ env.AWS_REGION }}"
+          echo "Namespace: cloudshelf"
+          echo "Image Tag: latest (SHA: ${{ github.sha }})"
+          echo ""
+          echo "Check deployment status:"
+          echo "kubectl get all -n cloudshelf"

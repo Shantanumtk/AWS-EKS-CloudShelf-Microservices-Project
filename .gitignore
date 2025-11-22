@@ -114,3 +114,18 @@ gradle-app.properties
 +**/*.tfplan
 +**/tfplan
 .ssh/
+
+# SSH keys
+*.pem
+*.key
+!*.key.pub
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
