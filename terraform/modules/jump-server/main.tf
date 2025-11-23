@@ -119,18 +119,15 @@ resource "aws_iam_instance_profile" "main" {
   tags = var.tags
 }
 
-# User Data Template
-data "template_file" "user_data" {
-  template = file("${path.module}/user-data.sh")
-
-  vars = {
+locals {
+  user_data = templatefile("${path.module}/user-data.sh", {
     aws_region     = var.aws_region
     cluster_name   = var.cluster_name
     ecr_registry   = var.ecr_registry_url
     github_repo    = var.github_repo
     github_branch  = var.github_branch
     project_name   = var.project_name
-  }
+  })
 }
 
 # Jump Server EC2 Instance
@@ -149,7 +146,7 @@ resource "aws_instance" "main" {
     encrypted             = true
   }
 
-  user_data = data.template_file.user_data.rendered
+  user_data = local.user_data 
 
   tags = merge(
     var.tags,

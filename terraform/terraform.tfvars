@@ -12,7 +12,7 @@ owner        = "DevOps"
 ssh_key_name = "cloudshelf-key"
 
 # Your IP for SSH access (Get with: curl ifconfig.me)
-#allowed_ssh_cidrs = ["YOUR_IP_HERE/32"]  # Replace with your IP
+allowed_ssh_cidrs = ["172.112.204.3/32"]  # Replace with your IP
 
 # GitHub Configuration
 github_repo   = "https://github.com/Shantanumtk/AWS-CloudShelf-Microservices-Project"
@@ -20,14 +20,14 @@ github_branch = "main"
 
 # ==================== OPTIONAL - Email Notifications ====================
 # Leave empty to skip
-notification_email = ""  # e.g., "your-email@example.com"
+notification_email = "" # e.g., "your-email@example.com"
 
 # ==================== VPC CONFIGURATION ====================
 vpc_cidr = "10.0.0.0/16"
 az_count = 3
 
 # ==================== EKS CONFIGURATION ====================
-kubernetes_version = "1.28"
+kubernetes_version = "1.32"
 
 # EKS API Access
 cluster_endpoint_public_access       = true
@@ -38,7 +38,7 @@ cluster_enabled_log_types = ["api", "audit", "authenticator"]
 
 # Node Group Configuration
 node_instance_types     = ["t3.large"]
-node_capacity_type      = "ON_DEMAND"  # or "SPOT" for cost savings
+node_capacity_type      = "ON_DEMAND" # or "SPOT" for cost savings
 node_disk_size          = 50
 node_group_desired_size = 3
 node_group_min_size     = 2
@@ -60,13 +60,13 @@ ecr_scan_on_push         = true
 ecr_max_image_count      = 10
 
 # ==================== VPC ENDPOINTS ====================
-enable_dynamodb_endpoint        = false  # Enable if using DynamoDB
+enable_dynamodb_endpoint        = false # Enable if using DynamoDB
 enable_sns_endpoint             = true
 enable_secrets_manager_endpoint = true
 enable_ssm_endpoint             = true
 
 # ==================== JUMP SERVER ====================
-jump_server_ami_id           = "ami-0e2c8caa4b6378d8c"  # Ubuntu 24.04 LTS (us-east-1)
+jump_server_ami_id           = "ami-0e2c8caa4b6378d8c" # Ubuntu 24.04 LTS (us-east-1)
 jump_server_instance_type    = "t3.medium"
 jump_server_root_volume_size = 30
 
@@ -81,18 +81,18 @@ s3_notification_events     = ["s3:ObjectCreated:*", "s3:ObjectRemoved:*"]
 enable_rds = false
 
 # RDS Configuration (only used if enable_rds = true)
-rds_engine_version            = "16"
-rds_engine_minor_version      = "1"
-rds_instance_class            = "db.t3.medium"
-rds_allocated_storage         = 100
-rds_max_allocated_storage     = 200
-rds_database_name             = "cloudshelf"
-rds_master_username           = "admin"
-rds_master_password           = "ChangeMe123!SecurePassword"  # CHANGE THIS!
-rds_backup_retention_period   = 7
-rds_backup_window             = "03:00-04:00"
-rds_maintenance_window        = "mon:04:00-mon:05:00"
-rds_skip_final_snapshot       = false
-rds_deletion_protection       = true
+rds_engine_version              = "16"
+rds_engine_minor_version        = "1"
+rds_instance_class              = "db.t3.medium"
+rds_allocated_storage           = 100
+rds_max_allocated_storage       = 200
+rds_database_name               = "cloudshelf"
+rds_master_username             = "admin"
+rds_master_password             = "ChangeMe123!SecurePassword" # CHANGE THIS!
+rds_backup_retention_period     = 7
+rds_backup_window               = "03:00-04:00"
+rds_maintenance_window          = "mon:04:00-mon:05:00"
+rds_skip_final_snapshot         = false
+rds_deletion_protection         = true
 rds_enable_performance_insights = false
-rds_enable_cloudwatch_alarms  = true
+rds_enable_cloudwatch_alarms    = true

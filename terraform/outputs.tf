@@ -82,7 +82,7 @@ output "rds_secret_name" {
 # ==================== Quick Start Guide ====================
 output "quick_start_guide" {
   description = "Quick start guide"
-  value = <<-EOT
+  value       = <<-EOT
     
     ════════════════════════════════════════════════════════════════
     ✅ CloudShelf EKS Infrastructure Deployed Successfully!

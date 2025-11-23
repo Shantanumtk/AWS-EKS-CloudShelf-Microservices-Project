@@ -62,7 +62,9 @@ resource "aws_security_group" "cluster" {
   }
 }
 
+
 # Allow worker nodes to communicate with cluster API
+/*
 resource "aws_security_group_rule" "cluster_ingress_workstation_https" {
   type                     = "ingress"
   from_port                = 443
@@ -72,6 +74,7 @@ resource "aws_security_group_rule" "cluster_ingress_workstation_https" {
   security_group_id        = aws_security_group.cluster.id
   description              = "Allow pods to communicate with cluster API"
 }
+*/
 
 # EKS Cluster
 resource "aws_eks_cluster" "main" {
@@ -212,7 +215,7 @@ resource "aws_security_group_rule" "nodes_internal" {
   security_group_id        = aws_security_group.nodes.id
   description              = "Allow nodes to communicate with each other"
 }
-
+/*
 # Allow worker nodes to receive communication from cluster control plane
 resource "aws_security_group_rule" "nodes_cluster_inbound" {
   type                     = "ingress"
@@ -234,7 +237,7 @@ resource "aws_security_group_rule" "cluster_inbound" {
   security_group_id        = aws_security_group.cluster.id
   description              = "Allow pods to communicate with cluster API"
 }
-
+*/
 # EKS Node Group
 resource "aws_eks_node_group" "main" {
   cluster_name    = aws_eks_cluster.main.name

@@ -57,6 +57,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "main" {
     id     = "transition-old-versions"
     status = "Enabled"
 
+    filter {}  # Apply to all objects
+
     noncurrent_version_transition {
       noncurrent_days = 30
       storage_class   = "STANDARD_IA"
@@ -75,6 +77,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "main" {
   rule {
     id     = "delete-old-incomplete-uploads"
     status = "Enabled"
+
+    filter {}  # Apply to all objects
 
     abort_incomplete_multipart_upload {
       days_after_initiation = 7
@@ -96,48 +100,7 @@ resource "aws_sns_topic" "main" {
   )
 }
 
-# SNS Topic Policy
-resource "aws_sns_topic_policy" "main" {
-  arn = aws_sns_topic.main.arn
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "AllowS3Publish"
-        Effect = "Allow"
-        Principal = {
-          Service = "s3.amazonaws.com"
-        }
-        Action   = "SNS:Publish"
-        Resource = aws_sns_topic.main.arn
-        Condition = {
-          ArnLike = {
-            "aws:SourceArn" = aws_s3_bucket.main.arn
-          }
-        }
-      },
-      {
-        Sid    = "AllowEKSPublish"
-        Effect = "Allow"
-        Principal = {
-          AWS = var.eks_node_role_arn
-        }
-        Action   = "SNS:Publish"
-        Resource = aws_sns_topic.main.arn
-      },
-      {
-        Sid    = "AllowJumpServerPublish"
-        Effect = "Allow"
-        Principal = {
-          AWS = var.jump_server_role_arn
-        }
-        Action   = "SNS:Publish"
-        Resource = aws_sns_topic.main.arn
-      }
-    ]
-  })
-}
+# NOTE: SNS Topic Policy is now managed in root main.tf to avoid circular dependencies
 
 # SNS Topic Subscription (Email)
 resource "aws_sns_topic_subscription" "email" {
@@ -159,5 +122,5 @@ resource "aws_s3_bucket_notification" "main" {
     events    = var.s3_notification_events
   }
 
-  depends_on = [aws_sns_topic_policy.main]
+  # NOTE: Depends on SNS policy which is now in root main.tf
 }
