@@ -47,20 +47,25 @@ jobs:
 
       - name: Configure kubectl authentication
         run: |
-          ACCOUNT_ID="${{ secrets.AWS_ACCOUNT_ID }}"
-          
-          # Get current aws-auth configmap
-          kubectl get configmap aws-auth -n kube-system -o yaml > /tmp/aws-auth-current.yaml
-          
-          # Check if user already exists
-          if ! grep -q "gh-actions-cloudshelf" /tmp/aws-auth-current.yaml; then
-            # Add user to aws-auth
-            kubectl get configmap aws-auth -n kube-system -o json | \
-            jq --arg userarn "arn:aws:iam::${ACCOUNT_ID}:user/gh-actions-cloudshelf" \
-               '.data.mapUsers = (.data.mapUsers // "" | split("\n") + ["  - userarn: \($userarn)", "    username: gh-actions-cloudshelf", "    groups:", "      - system:masters"] | join("\n"))' | \
-            kubectl apply -f - || echo "Warning: Could not update aws-auth, continuing..."
-          fi
-          
+          cat << 'EOF' | kubectl apply -f -
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: aws-auth
+            namespace: kube-system
+          data:
+            mapRoles: |
+              - groups:
+                - system:bootstrappers
+                - system:nodes
+                rolearn: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/cloudshelf-eks-node-group-role
+                username: system:node:{{EC2PrivateDNSName}}
+            mapUsers: |
+              - userarn: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:user/gh-actions-cloudshelf
+                username: gh-actions-cloudshelf
+                groups:
+                  - system:masters
+          EOF
           sleep 5
 
       - name: Verify cluster access
