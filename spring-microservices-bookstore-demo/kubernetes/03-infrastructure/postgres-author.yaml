@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
       - name: postgres
-        image: postgres:16-alpine
+        image: 443071119316.dkr.ecr.us-east-1.amazonaws.com/cloudshelf/postgres:16-alpine
         ports:
         - containerPort: 5432
         env:

@@ -115,6 +115,38 @@ module "eks" {
   depends_on = [module.vpc, module.vpc_endpoints]
 }
 
+# Configure aws-auth ConfigMap for GitHub Actions access
+resource "null_resource" "configure_aws_auth" {
+  depends_on = [module.eks]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      aws eks update-kubeconfig --region ${var.aws_region} --name ${local.cluster_name}
+      
+      kubectl apply -f - <<EOF
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: aws-auth
+        namespace: kube-system
+      data:
+        mapRoles: |
+          - groups:
+            - system:bootstrappers
+            - system:nodes
+            rolearn: ${module.eks.node_role_arn}
+            username: system:node:{{EC2PrivateDNSName}}
+        mapUsers: |
+          - userarn: arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/gh-actions-cloudshelf
+            username: gh-actions-cloudshelf
+            groups:
+              - system:masters
+      EOF
+    EOT
+  }
+}
+
+
 # ==================== JUMP SERVER MODULE ====================
 module "jump_server" {
   source = "./modules/jump-server"

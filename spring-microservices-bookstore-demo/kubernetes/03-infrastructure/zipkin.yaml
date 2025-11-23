@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
       - name: zipkin
-        image: openzipkin/zipkin:latest
+        image: 443071119316.dkr.ecr.us-east-1.amazonaws.com/cloudshelf/zipkin:latest
         ports:
         - containerPort: 9411
         resources:

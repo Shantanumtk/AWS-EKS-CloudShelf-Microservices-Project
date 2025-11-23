@@ -36,7 +36,7 @@ spec:
     spec:
       containers:
       - name: kafka
-        image: confluentinc/cp-kafka:7.5.0
+        image: 443071119316.dkr.ecr.us-east-1.amazonaws.com/cloudshelf/kafka:7.5.0
         ports:
         - containerPort: 9092
           name: kafka
