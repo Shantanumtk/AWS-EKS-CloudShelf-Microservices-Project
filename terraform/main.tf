@@ -111,7 +111,7 @@ module "eks" {
   sns_topic_arns = ["*"] # Wildcard to avoid circular dependency
 
   tags = local.common_tags
-
+  jump_server_role_arn = module.jump_server.instance_role_arn
   depends_on = [module.vpc, module.vpc_endpoints]
 }
 

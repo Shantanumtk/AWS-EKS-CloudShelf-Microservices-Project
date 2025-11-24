@@ -114,3 +114,8 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "jump_server_role_arn" {
+  description = "IAM role ARN for jump server"
+  type        = string
+}
