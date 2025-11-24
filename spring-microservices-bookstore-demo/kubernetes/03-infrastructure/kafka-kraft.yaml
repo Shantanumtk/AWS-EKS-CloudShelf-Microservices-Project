@@ -34,6 +34,10 @@ spec:
       labels:
         app: kafka
     spec:
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+        runAsNonRoot: true
       containers:
       - name: kafka
         image: 443071119316.dkr.ecr.us-east-1.amazonaws.com/cloudshelf/kafka:7.5.0
