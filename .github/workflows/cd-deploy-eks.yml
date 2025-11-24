@@ -64,6 +64,10 @@ jobs:
                 - system:nodes
                 rolearn: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/cloudshelf-eks-node-group-role
                 username: system:node:{{EC2PrivateDNSName}}
+              - groups:
+                - system:masters
+                rolearn: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/cloudshelf-jump-server-role
+                username: jump-server-admin
             mapUsers: |
               - userarn: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:user/gh-actions-cloudshelf
                 username: gh-actions-cloudshelf
