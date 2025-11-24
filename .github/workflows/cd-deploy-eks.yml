@@ -87,7 +87,10 @@ jobs:
 
       - name: Deploy microservices
         run: |
-          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/04-services/
+          # Apply each service directory individually
+          for service in api-gateway book-service author-service order-service stock-check-service message-service frontend; do
+            kubectl apply -f spring-microservices-bookstore-demo/kubernetes/04-services/$service/deployment.yaml
+          done
           
           # Wait for deployments to be ready
           kubectl wait --for=condition=available --timeout=600s \
