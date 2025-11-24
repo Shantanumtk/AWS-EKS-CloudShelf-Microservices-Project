@@ -105,6 +105,7 @@ spec:
         volumeMounts:
         - name: kafka-data
           mountPath: /var/lib/kafka/data
+          subPath: kafka-logs
         
         resources:
           requests:
