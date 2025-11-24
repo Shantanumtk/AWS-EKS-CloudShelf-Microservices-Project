@@ -44,6 +44,10 @@ jobs:
       - name: Update kubeconfig
         run: |
           aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
+      
+      - name: Configure aws-auth (one-time)
+        run: |
+          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/eks/aws-auth.yaml
 
       - name: Verify cluster access
         run: |
