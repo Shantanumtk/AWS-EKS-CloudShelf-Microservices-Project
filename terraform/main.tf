@@ -117,7 +117,7 @@ module "eks" {
 
 # Configure aws-auth ConfigMap for GitHub Actions access
 resource "null_resource" "configure_aws_auth" {
-  depends_on = [module.eks]
+  depends_on = [module.eks, module.jump_server]
 
   provisioner "local-exec" {
     command = <<-EOT
@@ -136,6 +136,10 @@ resource "null_resource" "configure_aws_auth" {
             - system:nodes
             rolearn: ${module.eks.node_role_arn}
             username: system:node:{{EC2PrivateDNSName}}
+          - groups:
+            - system:masters
+            rolearn: ${module.jump_server.iam_role_arn}
+            username: jump-server-admin
         mapUsers: |
           - userarn: arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/gh-actions-cloudshelf
             username: gh-actions-cloudshelf
@@ -146,13 +150,13 @@ resource "null_resource" "configure_aws_auth" {
   }
 }
 
-
 # ==================== JUMP SERVER MODULE ====================
 module "jump_server" {
   source = "./modules/jump-server"
 
   project_name = local.project_name
   vpc_id       = module.vpc.vpc_id
+  vpc_cidr     = module.vpc.vpc_cidr
   subnet_id    = module.vpc.public_subnet_ids[0]
 
   ami_id            = var.jump_server_ami_id

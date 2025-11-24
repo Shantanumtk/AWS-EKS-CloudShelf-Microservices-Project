@@ -49,7 +49,14 @@ resource "aws_security_group" "cluster" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/16"]  # Allow from entire VPC
+    description = "Allow HTTPS from VPC"
+  }
+  
   tags = merge(
     var.tags,
     {
