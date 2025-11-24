@@ -56,31 +56,19 @@ jobs:
 
       - name: Install AWS Load Balancer Controller
         run: |
-          # Check if ALB controller is already installed
           if kubectl get deployment aws-load-balancer-controller -n kube-system &> /dev/null; then
             echo "AWS Load Balancer Controller already installed"
           else
             echo "Installing AWS Load Balancer Controller..."
             
-            # Download manifest
-            curl -sL https://github.com/kubernetes-sigs/aws-load-balancer-controller/releases/download/v2.7.0/v2_7_0_full.yaml -o alb-controller.yaml
+            kubectl apply -f https://github.com/kubernetes-sigs/aws-load-balancer-controller/releases/download/v2.7.0/v2_7_0_full.yaml
             
-            # Remove ServiceAccount section (Terraform manages it)
-            sed -i '/^---$/,/^---$/{ /kind: ServiceAccount/,/^---$/d; }' alb-controller.yaml
+            sleep 10
             
-            # Apply controller
-            kubectl apply -f alb-controller.yaml
+            kubectl set env deployment/aws-load-balancer-controller -n kube-system AWS_REGION=${{ env.AWS_REGION }} CLUSTER_NAME=${{ env.EKS_CLUSTER_NAME }}
             
-            # Set cluster name
-            kubectl patch deployment aws-load-balancer-controller \
-              -n kube-system \
-              --type='json' \
-              -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value": "--cluster-name=${{ env.EKS_CLUSTER_NAME }}"}]'
-            
-            # Wait for controller to be ready
             echo "Waiting for ALB controller to be ready..."
-            kubectl wait --for=condition=available --timeout=120s \
-              deployment/aws-load-balancer-controller -n kube-system
+            kubectl wait --for=condition=available --timeout=180s deployment/aws-load-balancer-controller -n kube-system
             
             echo "✅ AWS Load Balancer Controller installed successfully"
           fi
@@ -89,9 +77,7 @@ jobs:
         run: |
           cd spring-microservices-bookstore-demo/kubernetes
           
-          # Update all deployment files with latest tag
-          find 04-services -name "deployment.yaml" -type f -exec sed -i \
-            's|image: shpro123/|image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/cloudshelf/|g' {} +
+          find 04-services -name "deployment.yaml" -type f -exec sed -i 's|image: shpro123/|image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/cloudshelf/|g' {} +
 
       - name: Deploy namespace
         run: |
@@ -109,7 +95,6 @@ jobs:
         run: |
           kubectl apply -f spring-microservices-bookstore-demo/kubernetes/03-infrastructure/
           
-          # Wait for infrastructure to be ready
           echo "Waiting for MongoDB..."
           kubectl wait --for=condition=ready pod -l app=mongodb -n cloudshelf --timeout=300s
           
@@ -118,21 +103,11 @@ jobs:
 
       - name: Deploy microservices
         run: |
-          # Apply each service directory individually
           for service in api-gateway book-service author-service order-service stock-check-service message-service frontend; do
             kubectl apply -f spring-microservices-bookstore-demo/kubernetes/04-services/$service/deployment.yaml
           done
           
-          # Wait for deployments to be ready
-          kubectl wait --for=condition=available --timeout=600s \
-            deployment/api-gateway \
-            deployment/book-service \
-            deployment/author-service \
-            deployment/order-service \
-            deployment/stock-check-service \
-            deployment/message-service \
-            deployment/frontend \
-            -n cloudshelf
+          kubectl wait --for=condition=available --timeout=600s deployment/api-gateway deployment/book-service deployment/author-service deployment/order-service deployment/stock-check-service deployment/message-service deployment/frontend -n cloudshelf
 
       - name: Deploy ingress
         run: |
@@ -148,25 +123,10 @@ jobs:
           if [ -n "$INGRESS_URL" ]; then
             echo "Load Balancer URL: $INGRESS_URL"
             
-            # Update frontend ConfigMap
-            kubectl patch configmap frontend-config -n cloudshelf --type merge -p "{
-              \"data\": {
-                \"NEXT_PUBLIC_API_BASE\": \"http://${INGRESS_URL}/api\",
-                \"NEXT_PUBLIC_GRAPHQL_ENDPOINT\": \"http://${INGRESS_URL}/api/graphql\",
-                \"NEXT_PUBLIC_AUTHORS_ENDPOINT\": \"http://${INGRESS_URL}/api/authors\",
-                \"NODE_ENV\": \"production\",
-                \"NEXT_TELEMETRY_DISABLED\": \"1\"
-              }
-            }"
+            kubectl patch configmap frontend-config -n cloudshelf --type merge -p "{\"data\":{\"NEXT_PUBLIC_API_BASE\":\"http://${INGRESS_URL}/api\",\"NEXT_PUBLIC_GRAPHQL_ENDPOINT\":\"http://${INGRESS_URL}/api/graphql\",\"NEXT_PUBLIC_AUTHORS_ENDPOINT\":\"http://${INGRESS_URL}/api/authors\",\"NODE_ENV\":\"production\",\"NEXT_TELEMETRY_DISABLED\":\"1\"}}"
             
-            # Update API Gateway CORS
-            kubectl patch configmap api-gateway-config -n cloudshelf --patch "{
-              \"data\": {
-                \"CORS_ALLOWED_ORIGINS\": \"http://${INGRESS_URL}\"
-              }
-            }"
+            kubectl patch configmap api-gateway-config -n cloudshelf --patch "{\"data\":{\"CORS_ALLOWED_ORIGINS\":\"http://${INGRESS_URL}\"}}"
             
-            # Restart frontend and API gateway to pick up new config
             kubectl rollout restart deployment/frontend -n cloudshelf
             kubectl rollout restart deployment/api-gateway -n cloudshelf
             
