@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: message-service
-        image: shpro123/message-service:latest
+        image: 443071119316.dkr.ecr.us-east-1.amazonaws.com/cloudshelf/message-service:latest
         imagePullPolicy: IfNotPresent
         envFrom:
         - configMapRef:

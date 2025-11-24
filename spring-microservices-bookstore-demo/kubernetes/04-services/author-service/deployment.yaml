@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: author-service
-        image: shpro123/author-service:latest
+        image: 443071119316.dkr.ecr.us-east-1.amazonaws.com/cloudshelf/author-service:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8085

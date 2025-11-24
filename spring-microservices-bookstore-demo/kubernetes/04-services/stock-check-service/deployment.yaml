@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: stock-check-service
-        image: shpro123/stock-check-service:latest
+        image: 443071119316.dkr.ecr.us-east-1.amazonaws.com/cloudshelf/stock-check-service:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080

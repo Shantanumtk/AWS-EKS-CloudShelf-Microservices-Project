@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: api-gateway
-        image: shpro123/api-gateway:latest
+        image: 443071119316.dkr.ecr.us-east-1.amazonaws.com/cloudshelf/api-gateway:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080

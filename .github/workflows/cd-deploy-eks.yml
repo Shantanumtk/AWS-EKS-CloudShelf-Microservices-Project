@@ -129,6 +129,43 @@ jobs:
         run: |
           kubectl apply -f spring-microservices-bookstore-demo/kubernetes/05-ingress/
 
+      - name: Update Frontend ConfigMap with Load Balancer URL
+        run: |
+          echo "Waiting for Load Balancer to be provisioned..."
+          sleep 60
+          
+          INGRESS_URL=$(kubectl get ingress cloudshelf-ingress -n cloudshelf -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          
+          if [ -n "$INGRESS_URL" ]; then
+            echo "Load Balancer URL: $INGRESS_URL"
+            
+            # Update frontend ConfigMap
+            kubectl patch configmap frontend-config -n cloudshelf --type merge -p "{
+              \"data\": {
+                \"NEXT_PUBLIC_API_BASE\": \"http://${INGRESS_URL}/api\",
+                \"NEXT_PUBLIC_GRAPHQL_ENDPOINT\": \"http://${INGRESS_URL}/api/graphql\",
+                \"NEXT_PUBLIC_AUTHORS_ENDPOINT\": \"http://${INGRESS_URL}/api/authors\",
+                \"NODE_ENV\": \"production\",
+                \"NEXT_TELEMETRY_DISABLED\": \"1\"
+              }
+            }"
+            
+            # Update API Gateway CORS
+            kubectl patch configmap api-gateway-config -n cloudshelf --patch "{
+              \"data\": {
+                \"CORS_ALLOWED_ORIGINS\": \"http://${INGRESS_URL}\"
+              }
+            }"
+            
+            # Restart frontend and API gateway to pick up new config
+            kubectl rollout restart deployment/frontend -n cloudshelf
+            kubectl rollout restart deployment/api-gateway -n cloudshelf
+            
+            echo "✅ ConfigMaps updated with Load Balancer URL"
+          else
+            echo "⚠️ Load Balancer not ready yet, skipping ConfigMap update"
+          fi
+
       - name: Verify deployment
         run: |
           echo "=== Pods Status ==="

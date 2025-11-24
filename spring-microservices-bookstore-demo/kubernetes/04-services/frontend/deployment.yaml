@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: shpro123/frontend:latest
+        image: 443071119316.dkr.ecr.us-east-1.amazonaws.com/cloudshelf/frontend:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 3000
