@@ -4,4 +4,4 @@ metadata:
   name: message-service-sa
   namespace: cloudshelf
   annotations:
-    eks.amazonaws.com/role-arn: arn:aws:iam::443071119316:role/message-service-sns-role
+    eks.amazonaws.com/role-arn: arn:aws:iam::443071119316:role/cloudshelf-message-service-sns-role

@@ -20,7 +20,7 @@ github_branch = "main"
 
 # ==================== OPTIONAL - Email Notifications ====================
 # Leave empty to skip
-notification_email = "" # e.g., "your-email@example.com"
+notification_email = "shamtk315@gmail.com" # e.g., "your-email@example.com"
 
 # ==================== VPC CONFIGURATION ====================
 vpc_cidr = "10.0.0.0/16"
