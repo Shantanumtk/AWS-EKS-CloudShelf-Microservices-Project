@@ -114,3 +114,8 @@ output "quick_start_guide" {
     ════════════════════════════════════════════════════════════════
   EOT
 }
+
+output "message_service_sns_role_arn" {
+  description = "IAM role ARN for message-service SNS access"
+  value       = aws_iam_role.message_service_sns_role.arn
+}

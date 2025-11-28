@@ -37,6 +37,7 @@ provider "aws" {
   }
 }
 
+/*
 # Connect Kubernetes provider to EKS cluster
 data "aws_eks_cluster" "main" {
   name = module.eks.cluster_name
@@ -45,6 +46,7 @@ data "aws_eks_cluster" "main" {
 data "aws_eks_cluster_auth" "main" {
   name = module.eks.cluster_name
 }
+*/
 
 provider "kubernetes" {
   host                   = data.aws_eks_cluster.main.endpoint

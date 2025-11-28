@@ -50,14 +50,3 @@ resource "aws_iam_role_policy_attachment" "message_service_sns_attach" {
   role       = aws_iam_role.message_service_sns_role.name
   policy_arn = aws_iam_policy.message_service_sns_policy.arn
 }
-
-# Kubernetes Service Account for IRSA
-resource "kubernetes_service_account" "message_service_sa" {
-  metadata {
-    name      = "message-service-sa"
-    namespace = "cloudshelf"
-    annotations = {
-      "eks.amazonaws.com/role-arn" = aws_iam_role.message_service_sns_role.arn
-    }
-  }
-}
