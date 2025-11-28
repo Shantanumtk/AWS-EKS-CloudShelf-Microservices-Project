@@ -85,3 +85,13 @@ output "alb_controller_role_arn" {
   description = "IAM role ARN for ALB Controller"
   value       = aws_iam_role.alb_controller.arn
 }
+
+# OIDC Provider URL output (without https://) for IRSA usage
+output "oidc_provider_url" {
+  description = "OIDC Provider URL without https:// prefix"
+  value       = replace(
+    aws_iam_openid_connect_provider.cluster.url,
+    "https://",
+    ""
+  )
+}

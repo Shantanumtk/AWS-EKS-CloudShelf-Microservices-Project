@@ -188,42 +188,43 @@ resource "aws_sns_topic_policy" "update_policy" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "AllowS3Publish"
-        Effect = "Allow"
+        Sid: "AllowS3Publish"
+        Effect: "Allow"
         Principal = {
           Service = "s3.amazonaws.com"
         }
-        Action   = "SNS:Publish"
-        Resource = module.s3_sns.sns_topic_arn
+        Action: "SNS:Publish"
+        Resource: module.s3_sns.sns_topic_arn
         Condition = {
           ArnLike = {
-            "aws:SourceArn" = module.s3_sns.s3_bucket_arn
+            "aws:SourceArn": module.s3_sns.s3_bucket_arn
           }
         }
       },
       {
-        Sid    = "AllowEKSPublish"
-        Effect = "Allow"
+        Sid: "AllowEKSPublish"
+        Effect: "Allow"
         Principal = {
-          AWS = module.eks.node_role_arn
+          AWS: module.eks.node_role_arn
         }
-        Action   = "SNS:Publish"
-        Resource = module.s3_sns.sns_topic_arn
+        Action: "SNS:Publish"
+        Resource: module.s3_sns.sns_topic_arn
       },
       {
-        Sid    = "AllowJumpServerPublish"
-        Effect = "Allow"
+        Sid: "AllowJumpServerPublish"
+        Effect: "Allow"
         Principal = {
-          AWS = module.jump_server.iam_role_arn
+          AWS: module.jump_server.iam_role_arn
         }
-        Action   = "SNS:Publish"
-        Resource = module.s3_sns.sns_topic_arn
+        Action: "SNS:Publish"
+        Resource: module.s3_sns.sns_topic_arn
       }
     ]
   })
 
   depends_on = [module.s3_sns, module.eks, module.jump_server]
 }
+
 
 # ==================== RDS MODULE (OPTIONAL) ====================
 module "rds" {

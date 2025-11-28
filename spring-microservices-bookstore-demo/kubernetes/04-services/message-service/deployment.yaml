@@ -13,20 +13,21 @@ spec:
       labels:
         app: message-service
     spec:
+      serviceAccountName: message-service-sa   # <--- ADD THIS
       containers:
-      - name: message-service
-        image: 443071119316.dkr.ecr.us-east-1.amazonaws.com/cloudshelf/message-service:latest
-        imagePullPolicy: IfNotPresent
-        envFrom:
-        - configMapRef:
-            name: message-service-config
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "100m"
-          limits:
-            memory: "512Mi"
-            cpu: "250m"
+        - name: message-service
+          image: 443071119316.dkr.ecr.us-east-1.amazonaws.com/cloudshelf/message-service:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: message-service-config
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "250m"
 ---
 apiVersion: v1
 kind: Service
@@ -36,7 +37,7 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-  - port: 8080
-    targetPort: 8080
+    - port: 8080
+      targetPort: 8080
   selector:
     app: message-service

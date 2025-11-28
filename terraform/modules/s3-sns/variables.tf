@@ -32,7 +32,7 @@ variable "s3_notification_events" {
 variable "notification_email" {
   description = "Email address for SNS notifications (leave empty to skip)"
   type        = string
-  default     = ""
+  default     = "shamtk315@gmail.com"
 }
 
 # IAM Variables
