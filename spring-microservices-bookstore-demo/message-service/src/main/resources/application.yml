@@ -1,7 +1,7 @@
 spring:
   application:
     name: message-service
-  
+
   # Kafka configuration
   kafka:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
@@ -11,6 +11,8 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: "*"
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: com.chrisbaileydeveloper.messageservice.OrderPlacedEvent
 
 # Management and Actuator
 management:
@@ -21,16 +23,16 @@ management:
   endpoint:
     health:
       show-details: always
-  
+
   # Zipkin tracing
   zipkin:
     tracing:
       endpoint: ${MANAGEMENT_ZIPKIN_TRACING_ENDPOINT:http://localhost:9411/api/v2/spans}
-  
+
   tracing:
     sampling:
       probability: 1.0
-  
+
   # Prometheus metrics
   metrics:
     export:
