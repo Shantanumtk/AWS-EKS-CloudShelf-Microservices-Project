@@ -18,6 +18,10 @@ terraform {
       source  = "hashicorp/http"
       version = "~> 3.4"
     }
+    helm = {
+      source  = "hashicorp/helm"
+      version = "~> 2.12"
+    }
   }
 }
 

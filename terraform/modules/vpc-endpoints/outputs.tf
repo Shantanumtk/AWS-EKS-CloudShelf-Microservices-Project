@@ -54,3 +54,8 @@ output "endpoint_dns_entries" {
     logs    = aws_vpc_endpoint.logs.dns_entry
   }
 }
+
+output "elb_endpoint_id" {
+  description = "Elastic Load Balancing VPC endpoint ID"
+  value       = aws_vpc_endpoint.elasticloadbalancing.id
+}

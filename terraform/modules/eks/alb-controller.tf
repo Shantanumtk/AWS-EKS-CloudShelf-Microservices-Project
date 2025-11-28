@@ -29,9 +29,8 @@ resource "aws_iam_role" "alb_controller" {
   tags               = var.tags
 }
 
-# Download and use AWS Load Balancer Controller IAM Policy
 data "http" "alb_controller_iam_policy" {
-  url = "https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.7.0/docs/install/iam_policy.json"
+  url = "https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.11.0/docs/install/iam_policy.json"
 }
 
 resource "aws_iam_policy" "alb_controller" {
@@ -44,20 +43,4 @@ resource "aws_iam_policy" "alb_controller" {
 resource "aws_iam_role_policy_attachment" "alb_controller" {
   role       = aws_iam_role.alb_controller.name
   policy_arn = aws_iam_policy.alb_controller.arn
-}
-
-# Kubernetes Service Account for ALB Controller
-resource "kubernetes_service_account" "alb_controller" {
-  metadata {
-    name      = "aws-load-balancer-controller"
-    namespace = "kube-system"
-    annotations = {
-      "eks.amazonaws.com/role-arn" = aws_iam_role.alb_controller.arn
-    }
-  }
-
-  depends_on = [
-    aws_eks_cluster.main,
-    aws_eks_node_group.main
-  ]
 }

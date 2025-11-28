@@ -53,30 +53,10 @@ jobs:
         run: |
           kubectl cluster-info
           kubectl get nodes
-
-      - name: Install AWS Load Balancer Controller
-        run: |
-          if kubectl get deployment aws-load-balancer-controller -n kube-system &> /dev/null; then
-            echo "AWS Load Balancer Controller already installed"
-          else
-            echo "Installing AWS Load Balancer Controller..."
-            
-            kubectl apply -f https://github.com/kubernetes-sigs/aws-load-balancer-controller/releases/download/v2.7.0/v2_7_0_full.yaml
-            
-            sleep 10
-            
-            kubectl set env deployment/aws-load-balancer-controller -n kube-system AWS_REGION=${{ env.AWS_REGION }} CLUSTER_NAME=${{ env.EKS_CLUSTER_NAME }}
-            
-            echo "Waiting for ALB controller to be ready..."
-            kubectl wait --for=condition=available --timeout=180s deployment/aws-load-balancer-controller -n kube-system
-            
-            echo "✅ AWS Load Balancer Controller installed successfully"
-          fi
       
       - name: Update image tags in manifests
         run: |
           cd spring-microservices-bookstore-demo/kubernetes
-          
           find 04-services -name "deployment.yaml" -type f -exec sed -i 's|image: shpro123/|image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/cloudshelf/|g' {} +
 
       - name: Deploy namespace
@@ -115,52 +95,60 @@ jobs:
 
       - name: Update Frontend ConfigMap with Load Balancer URL
         run: |
-          echo "Waiting for Load Balancer to be provisioned..."
-          sleep 60
-          
-          INGRESS_URL=$(kubectl get ingress cloudshelf-ingress -n cloudshelf -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-          
-          if [ -n "$INGRESS_URL" ]; then
-            echo "Load Balancer URL: $INGRESS_URL"
-            
-            kubectl patch configmap frontend-config -n cloudshelf --type merge -p "{\"data\":{\"NEXT_PUBLIC_API_BASE\":\"http://${INGRESS_URL}/api\",\"NEXT_PUBLIC_GRAPHQL_ENDPOINT\":\"http://${INGRESS_URL}/api/graphql\",\"NEXT_PUBLIC_AUTHORS_ENDPOINT\":\"http://${INGRESS_URL}/api/authors\",\"NODE_ENV\":\"production\",\"NEXT_TELEMETRY_DISABLED\":\"1\"}}"
-            
-            kubectl patch configmap api-gateway-config -n cloudshelf --patch "{\"data\":{\"CORS_ALLOWED_ORIGINS\":\"http://${INGRESS_URL}\"}}"
-            
-            kubectl rollout restart deployment/frontend -n cloudshelf
-            kubectl rollout restart deployment/api-gateway -n cloudshelf
-            
-            echo "✅ ConfigMaps updated with Load Balancer URL"
-          else
-            echo "⚠️ Load Balancer not ready yet, skipping ConfigMap update"
+          echo "⏳ Waiting for Load Balancer hostname..."
+
+          for i in {1..40}; do
+            INGRESS_URL=$(kubectl get ingress cloudshelf-ingress -n cloudshelf -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+            if [ -n "$INGRESS_URL" ]; then
+              echo "🎯 ALB Ready: $INGRESS_URL"
+              break
+            fi
+            echo "Attempt $i/40: ALB not ready... retrying in 15s"
+            sleep 15
+          done
+
+          if [ -z "$INGRESS_URL" ]; then
+            echo "❌ ALB hostname still not available — failing deployment"
+            exit 1
           fi
+
+          echo "🔧 Applying ALB hostname to ConfigMaps..."
+
+          kubectl patch configmap frontend-config -n cloudshelf --type merge -p \
+            "{\"data\":{\"NEXT_PUBLIC_API_BASE\":\"http://$INGRESS_URL/api\",\"NEXT_PUBLIC_GRAPHQL_ENDPOINT\":\"http://$INGRESS_URL/api/graphql\",\"NEXT_PUBLIC_AUTHORS_ENDPOINT\":\"http://$INGRESS_URL/api/authors\",\"NODE_ENV\":\"production\",\"NEXT_TELEMETRY_DISABLED\":\"1\"}}"
+
+          kubectl patch configmap api-gateway-config -n cloudshelf --type merge -p \
+            "{\"data\":{\"CORS_ALLOWED_ORIGINS\":\"http://$INGRESS_URL\"}}"
+
+          echo "🔄 Restarting deployments..."
+          kubectl rollout restart deployment/frontend -n cloudshelf
+          kubectl rollout restart deployment/api-gateway -n cloudshelf
+
+          echo "🚀 ConfigMaps successfully updated with ALB hostname"
 
       - name: Verify deployment
         run: |
           echo "=== Pods Status ==="
           kubectl get pods -n cloudshelf
-          
           echo "=== Services Status ==="
           kubectl get services -n cloudshelf
-          
           echo "=== Deployments Status ==="
           kubectl get deployments -n cloudshelf
-          
           echo "=== Ingress Status ==="
           kubectl get ingress -n cloudshelf
 
       - name: Get Application URL
         run: |
-          echo "Waiting for Load Balancer..."
-          sleep 60
-          
-          INGRESS_URL=$(kubectl get ingress cloudshelf-ingress -n cloudshelf -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-          
+          echo "🔍 Checking Load Balancer URL..."
+          for i in {1..40}; do
+            INGRESS_URL=$(kubectl get ingress cloudshelf-ingress -n cloudshelf -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+            if [ -n "$INGRESS_URL" ]; then break; fi
+            sleep 15
+          done
           if [ -n "$INGRESS_URL" ]; then
-            echo "✅ Application deployed successfully!"
             echo "🌐 Application URL: http://$INGRESS_URL"
           else
-            echo "⚠️ Load Balancer URL not ready yet. Check later with:"
+            echo "⚠️ ALB still not ready — check manually:"
             echo "kubectl get ingress -n cloudshelf"
           fi
 
@@ -171,6 +159,4 @@ jobs:
           echo "Region: ${{ env.AWS_REGION }}"
           echo "Namespace: cloudshelf"
           echo "Image Tag: latest (SHA: ${{ github.sha }})"
-          echo ""
-          echo "Check deployment status:"
-          echo "kubectl get all -n cloudshelf"
+          echo "Check status: kubectl get all -n cloudshelf"

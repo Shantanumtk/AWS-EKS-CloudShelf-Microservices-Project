@@ -81,4 +81,7 @@ output "kubeconfig_command" {
   value       = "aws eks update-kubeconfig --region ${data.aws_region.current.name} --name ${aws_eks_cluster.main.name}"
 }
 
-data "aws_region" "current" {}
+output "alb_controller_role_arn" {
+  description = "IAM role ARN for ALB Controller"
+  value       = aws_iam_role.alb_controller.arn
+}

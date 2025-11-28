@@ -307,3 +307,5 @@ resource "aws_iam_openid_connect_provider" "cluster" {
 
   tags = var.tags
 }
+
+data "aws_region" "current" {}
