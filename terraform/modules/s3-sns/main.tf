@@ -124,3 +124,18 @@ resource "aws_s3_bucket_notification" "main" {
 
   # NOTE: Depends on SNS policy which is now in root main.tf
 }
+
+resource "aws_sns_topic" "order_notifications" {
+  name = "${var.project_name}-order-notifications"
+  tags = var.tags
+}
+
+resource "aws_sns_topic_subscription" "email" {
+  topic_arn = aws_sns_topic.order_notifications.arn
+  protocol  = "email"
+  endpoint  = var.notification_email
+}
+
+output "topic_arn" {
+  value = aws_sns_topic.order_notifications.arn
+}

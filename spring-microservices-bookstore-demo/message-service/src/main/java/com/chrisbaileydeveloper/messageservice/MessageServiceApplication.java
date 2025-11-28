@@ -16,6 +16,7 @@ public class MessageServiceApplication {
 
     private final ObservationRegistry observationRegistry;
     private final Tracer tracer;
+    private final SnsNotificationService snsNotificationService;
 
     public static void main(String[] args) {
         SpringApplication.run(MessageServiceApplication.class, args);
@@ -24,10 +25,17 @@ public class MessageServiceApplication {
     @KafkaListener(topics = "messageTopic")
     public void handleMessage(OrderPlacedEvent orderPlacedEvent) {
         Observation.createNotStarted("on-message", this.observationRegistry).observe(() -> {
+            String traceId = this.tracer.currentSpan().context().traceId();
+            
             log.info("Received message <{}>", orderPlacedEvent);
-            log.info("For TraceId- {}, Received message for Order - {}", this.tracer.currentSpan().context().traceId(),
-                    orderPlacedEvent.getOrderNumber());
+            log.info("For TraceId- {}, Received message for Order - {}", 
+                traceId, orderPlacedEvent.getOrderNumber());
+            
+            // Send email notification via SNS
+            snsNotificationService.sendOrderNotification(
+                orderPlacedEvent.getOrderNumber(), 
+                traceId
+            );
         });
-        // Here we would send out an email notification that the order was placed successfully.
     }
 }
