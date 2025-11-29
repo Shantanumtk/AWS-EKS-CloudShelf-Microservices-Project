@@ -3,32 +3,18 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
-		<groupId>org.springframework.boot</groupId>
-		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.7</version>
-		<relativePath/> <!-- lookup parent from repository -->
+		<groupId>com.chrisbaileydeveloper</groupId>
+		<artifactId>spring-microservices-bookstore</artifactId>
+		<version>1.0-SNAPSHOT</version>
 	</parent>
-	<groupId>com.hisham.cloudshelf</groupId>
 	<artifactId>reviews-service</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
 	<name>reviews-service</name>
 	<description>Reviews &amp; Ratings microservice</description>
-	<url/>
-	<licenses>
-		<license/>
-	</licenses>
-	<developers>
-		<developer/>
-	</developers>
-	<scm>
-		<connection/>
-		<developerConnection/>
-		<tag/>
-		<url/>
-	</scm>
+
 	<properties>
 		<java.version>17</java.version>
 	</properties>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -46,7 +32,6 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
@@ -92,5 +77,4 @@
 			</plugin>
 		</plugins>
 	</build>
-
 </project>

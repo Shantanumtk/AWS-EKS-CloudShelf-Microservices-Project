@@ -22,6 +22,7 @@
         <module>stock-check-service</module>
         <module>message-service</module>
         <module>author-service</module>
+        <module>reviews-service</module>
     </modules>
 
     <properties>
