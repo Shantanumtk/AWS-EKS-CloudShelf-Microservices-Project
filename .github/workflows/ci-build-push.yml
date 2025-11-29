@@ -35,6 +35,7 @@ jobs:
           - order-service
           - stock-check-service
           - message-service
+          - reviews-service
           - frontend
 
     steps:

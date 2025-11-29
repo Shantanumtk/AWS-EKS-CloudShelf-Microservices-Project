@@ -32,7 +32,15 @@ spring:
             - Path=/api/order/**
           filters:
             - RewritePath=/api/order/(?<segment>.*), /api/order/${segment}
-      
+
+        # Reviews Service routes
+        - id: reviews-service
+          uri: ${REVIEWS_SERVICE_URL:http://localhost:8086}
+          predicates:
+            - Path=/api/reviews/**
+          filters:
+            - RewritePath=/api/reviews/(?<segment>.*), /${segment}
+        
       # Global CORS configuration
       globalcors:
         corsConfigurations:

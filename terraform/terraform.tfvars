@@ -27,7 +27,7 @@ vpc_cidr = "10.0.0.0/16"
 az_count = 3
 
 # ==================== EKS CONFIGURATION ====================
-kubernetes_version = "1.32"
+kubernetes_version = "1.34"
 
 # EKS API Access
 cluster_endpoint_public_access       = true
@@ -52,7 +52,8 @@ service_names = [
   "order-service",
   "stock-check-service",
   "message-service",
-  "frontend"
+  "frontend",
+  "reviews-service"
 ]
 
 ecr_image_tag_mutability = "MUTABLE"
@@ -78,21 +79,21 @@ s3_notification_events     = ["s3:ObjectCreated:*", "s3:ObjectRemoved:*"]
 
 # ==================== RDS (OPTIONAL - FOR FUTURE) ====================
 # Set to true when ready to use RDS instead of database containers
-enable_rds = false
+enable_rds = true
 
 # RDS Configuration (only used if enable_rds = true)
 rds_engine_version              = "16"
 rds_engine_minor_version        = "1"
-rds_instance_class              = "db.t3.medium"
-rds_allocated_storage           = 100
-rds_max_allocated_storage       = 200
-rds_database_name               = "cloudshelf"
-rds_master_username             = "admin"
-rds_master_password             = "ChangeMe123!SecurePassword" # CHANGE THIS!
+rds_instance_class              = "db.t3.micro"
+rds_allocated_storage           = 20
+rds_max_allocated_storage       = 50
+rds_database_name               = "reviews_db"
+rds_master_username             = "reviews_user"
+rds_master_password             = "CReviewsSecure123!" # CHANGE THIS!
 rds_backup_retention_period     = 7
 rds_backup_window               = "03:00-04:00"
 rds_maintenance_window          = "mon:04:00-mon:05:00"
-rds_skip_final_snapshot         = false
-rds_deletion_protection         = true
+rds_skip_final_snapshot         = true
+rds_deletion_protection         = false
 rds_enable_performance_insights = false
 rds_enable_cloudwatch_alarms    = true

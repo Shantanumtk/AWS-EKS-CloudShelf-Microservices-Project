@@ -156,11 +156,6 @@ resource "aws_secretsmanager_secret_version" "rds_credentials" {
     port                = 5432
     dbname              = var.database_name
     
-    # Connection strings for different services
-    author_service_url  = "jdbc:postgresql://${aws_db_instance.main.address}:5432/author_service"
-    author_r2dbc_url    = "r2dbc:postgresql://${aws_db_instance.main.address}:5432/author_service"
-    order_service_url   = "jdbc:postgresql://${aws_db_instance.main.address}:5432/order_service"
-    stock_service_url   = "jdbc:postgresql://${aws_db_instance.main.address}:5432/stock_check_service"
   })
 }
 

@@ -67,6 +67,24 @@ jobs:
         run: |
           kubectl apply -f spring-microservices-bookstore-demo/kubernetes/02-secrets/
 
+      - name: Create RDS secret for reviews-service
+        run: |
+          # Get RDS endpoint
+          RDS_ENDPOINT=$(aws rds describe-db-instances --db-instance-identifier cloudshelf-db --query 'DBInstances[0].Endpoint.Address' --output text --region ${{ env.AWS_REGION }})
+          
+          if [ -z "$RDS_ENDPOINT" ] || [ "$RDS_ENDPOINT" == "None" ]; then
+            echo "⚠️ RDS not found - skipping reviews-db-credentials secret"
+          else
+            echo "🔧 Creating reviews-db-credentials secret with RDS endpoint: $RDS_ENDPOINT"
+            kubectl create secret generic reviews-db-credentials \
+              --namespace cloudshelf \
+              --from-literal=SPRING_DATASOURCE_URL="jdbc:postgresql://${RDS_ENDPOINT}:5432/reviews_db" \
+              --from-literal=SPRING_DATASOURCE_USERNAME="reviews_user" \
+              --from-literal=SPRING_DATASOURCE_PASSWORD="ReviewsSecure123!" \
+              --dry-run=client -o yaml | kubectl apply -f -
+            echo "✅ reviews-db-credentials secret created"
+          fi
+
       - name: Deploy ConfigMaps
         run: |
           kubectl apply -f spring-microservices-bookstore-demo/kubernetes/01-configmaps/
@@ -83,11 +101,11 @@ jobs:
 
       - name: Deploy microservices
         run: |
-          for service in api-gateway book-service author-service order-service stock-check-service message-service frontend; do
+          for service in api-gateway book-service author-service order-service stock-check-service message-service reviews-service frontend; do
             kubectl apply -f spring-microservices-bookstore-demo/kubernetes/04-services/$service/deployment.yaml
           done
           
-          kubectl wait --for=condition=available --timeout=600s deployment/api-gateway deployment/book-service deployment/author-service deployment/order-service deployment/stock-check-service deployment/message-service deployment/frontend -n cloudshelf
+          kubectl wait --for=condition=available --timeout=600s deployment/api-gateway deployment/book-service deployment/author-service deployment/order-service deployment/stock-check-service deployment/message-service deployment/reviews-service deployment/frontend -n cloudshelf
 
       - name: Deploy ingress
         run: |

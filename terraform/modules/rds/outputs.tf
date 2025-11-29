@@ -56,12 +56,6 @@ output "connection_info" {
     port     = aws_db_instance.main.port
     database = aws_db_instance.main.db_name
     username = var.master_username
-    
-    # JDBC URLs for future services
-    author_jdbc   = "jdbc:postgresql://${aws_db_instance.main.address}:5432/author_service"
-    author_r2dbc  = "r2dbc:postgresql://${aws_db_instance.main.address}:5432/author_service"
-    order_jdbc    = "jdbc:postgresql://${aws_db_instance.main.address}:5432/order_service"
-    stock_jdbc    = "jdbc:postgresql://${aws_db_instance.main.address}:5432/stock_check_service"
-  }
+    }
   sensitive = true
 }
