@@ -4,281 +4,61 @@ metadata:
   name: grafana-dashboard-jvm
   namespace: cloudshelf
 data:
-  jvm-dashboard.json: |
+  jvm-metrics.json: |
     {
-      "annotations": {"list": []},
-      "editable": true,
-      "fiscalYearStartMonth": 0,
-      "graphTooltip": 0,
-      "id": null,
-      "links": [],
-      "liveNow": false,
+      "uid": "cloudshelf-jvm",
+      "title": "CloudShelf JVM Metrics",
+      "tags": ["cloudshelf", "jvm"],
+      "timezone": "browser",
+      "refresh": "10s",
+      "time": {"from": "now-1h", "to": "now"},
       "panels": [
         {
-          "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "fieldConfig": {
-            "defaults": {
-              "color": {"mode": "palette-classic"},
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 10,
-                "gradientMode": "none",
-                "hideFrom": {"legend": false, "tooltip": false, "viz": false},
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {"type": "linear"},
-                "showPoints": "never",
-                "spanNulls": false,
-                "stacking": {"group": "A", "mode": "none"},
-                "thresholdsStyle": {"mode": "off"}
-              },
-              "mappings": [],
-              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
-              "unit": "bytes"
-            }
-          },
-          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
           "id": 1,
-          "options": {
-            "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true},
-            "tooltip": {"mode": "multi", "sort": "desc"}
-          },
-          "targets": [
-            {
-              "expr": "jvm_memory_used_bytes{job=~\"$service\", area=\"heap\"}",
-              "legendFormat": "{{job}} - {{id}}",
-              "refId": "A"
-            }
-          ],
-          "title": "JVM Heap Memory Used",
-          "type": "timeseries"
+          "title": "Heap Memory Used",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "targets": [{"expr": "jvm_memory_used_bytes{area=\"heap\"}", "legendFormat": "{{job}} - {{id}}"}],
+          "fieldConfig": {"defaults": {"unit": "bytes"}}
         },
         {
-          "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "fieldConfig": {
-            "defaults": {
-              "color": {"mode": "palette-classic"},
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 10,
-                "gradientMode": "none",
-                "hideFrom": {"legend": false, "tooltip": false, "viz": false},
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {"type": "linear"},
-                "showPoints": "never",
-                "spanNulls": false,
-                "stacking": {"group": "A", "mode": "none"},
-                "thresholdsStyle": {"mode": "off"}
-              },
-              "mappings": [],
-              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
-              "unit": "bytes"
-            }
-          },
-          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
           "id": 2,
-          "options": {
-            "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true},
-            "tooltip": {"mode": "multi", "sort": "desc"}
-          },
-          "targets": [
-            {
-              "expr": "jvm_memory_used_bytes{job=~\"$service\", area=\"nonheap\"}",
-              "legendFormat": "{{job}} - {{id}}",
-              "refId": "A"
-            }
-          ],
-          "title": "JVM Non-Heap Memory Used",
-          "type": "timeseries"
+          "title": "Non-Heap Memory Used",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "targets": [{"expr": "jvm_memory_used_bytes{area=\"nonheap\"}", "legendFormat": "{{job}} - {{id}}"}],
+          "fieldConfig": {"defaults": {"unit": "bytes"}}
         },
         {
-          "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "fieldConfig": {
-            "defaults": {
-              "color": {"mode": "palette-classic"},
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 10,
-                "gradientMode": "none",
-                "hideFrom": {"legend": false, "tooltip": false, "viz": false},
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {"type": "linear"},
-                "showPoints": "never",
-                "spanNulls": false,
-                "stacking": {"group": "A", "mode": "none"},
-                "thresholdsStyle": {"mode": "off"}
-              },
-              "mappings": [],
-              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
-              "unit": "short"
-            }
-          },
-          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
           "id": 3,
-          "options": {
-            "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true},
-            "tooltip": {"mode": "multi", "sort": "desc"}
-          },
-          "targets": [
-            {
-              "expr": "jvm_threads_live_threads{job=~\"$service\"}",
-              "legendFormat": "{{job}} - live",
-              "refId": "A"
-            },
-            {
-              "expr": "jvm_threads_daemon_threads{job=~\"$service\"}",
-              "legendFormat": "{{job}} - daemon",
-              "refId": "B"
-            }
-          ],
           "title": "JVM Threads",
-          "type": "timeseries"
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+          "targets": [
+            {"expr": "jvm_threads_live_threads", "legendFormat": "{{job}} - live"},
+            {"expr": "jvm_threads_daemon_threads", "legendFormat": "{{job}} - daemon"}
+          ],
+          "fieldConfig": {"defaults": {"unit": "short"}}
         },
         {
-          "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "fieldConfig": {
-            "defaults": {
-              "color": {"mode": "palette-classic"},
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 10,
-                "gradientMode": "none",
-                "hideFrom": {"legend": false, "tooltip": false, "viz": false},
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {"type": "linear"},
-                "showPoints": "never",
-                "spanNulls": false,
-                "stacking": {"group": "A", "mode": "none"},
-                "thresholdsStyle": {"mode": "off"}
-              },
-              "mappings": [],
-              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
-              "unit": "ops"
-            }
-          },
-          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
           "id": 4,
-          "options": {
-            "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true},
-            "tooltip": {"mode": "multi", "sort": "desc"}
-          },
-          "targets": [
-            {
-              "expr": "rate(jvm_gc_pause_seconds_count{job=~\"$service\"}[5m])",
-              "legendFormat": "{{job}} - {{cause}}",
-              "refId": "A"
-            }
-          ],
-          "title": "GC Pause Rate",
-          "type": "timeseries"
+          "title": "GC Pause Duration",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+          "targets": [{"expr": "rate(jvm_gc_pause_seconds_sum[5m])", "legendFormat": "{{job}} - {{action}}"}],
+          "fieldConfig": {"defaults": {"unit": "s"}}
         },
         {
-          "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "fieldConfig": {
-            "defaults": {
-              "color": {"mode": "palette-classic"},
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 10,
-                "gradientMode": "none",
-                "hideFrom": {"legend": false, "tooltip": false, "viz": false},
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {"type": "linear"},
-                "showPoints": "never",
-                "spanNulls": false,
-                "stacking": {"group": "A", "mode": "none"},
-                "thresholdsStyle": {"mode": "off"}
-              },
-              "mappings": [],
-              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
-              "unit": "percentunit"
-            }
-          },
-          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16},
           "id": 5,
-          "options": {
-            "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true},
-            "tooltip": {"mode": "multi", "sort": "desc"}
-          },
-          "targets": [
-            {
-              "expr": "system_cpu_usage{job=~\"$service\"}",
-              "legendFormat": "{{job}} - system",
-              "refId": "A"
-            },
-            {
-              "expr": "process_cpu_usage{job=~\"$service\"}",
-              "legendFormat": "{{job}} - process",
-              "refId": "B"
-            }
-          ],
           "title": "CPU Usage",
-          "type": "timeseries"
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16},
+          "targets": [
+            {"expr": "process_cpu_usage", "legendFormat": "{{job}} - process"},
+            {"expr": "system_cpu_usage", "legendFormat": "{{job}} - system"}
+          ],
+          "fieldConfig": {"defaults": {"unit": "percentunit", "max": 1}}
         }
       ],
-      "refresh": "10s",
-      "schemaVersion": 38,
-      "style": "dark",
-      "tags": ["cloudshelf", "jvm"],
-      "templating": {
-        "list": [
-          {
-            "current": {"selected": true, "text": "All", "value": "$__all"},
-            "datasource": {"type": "prometheus", "uid": "prometheus"},
-            "definition": "label_values(jvm_memory_used_bytes, job)",
-            "hide": 0,
-            "includeAll": true,
-            "label": "Service",
-            "multi": true,
-            "name": "service",
-            "options": [],
-            "query": {"query": "label_values(jvm_memory_used_bytes, job)", "refId": "StandardVariableQuery"},
-            "refresh": 2,
-            "regex": "",
-            "skipUrlSync": false,
-            "sort": 1,
-            "type": "query"
-          }
-        ]
-      },
-      "time": {"from": "now-1h", "to": "now"},
-      "timepicker": {},
-      "timezone": "",
-      "title": "CloudShelf JVM Metrics",
-      "uid": "cloudshelf-jvm",
-      "version": 1
+      "schemaVersion": 38
     }

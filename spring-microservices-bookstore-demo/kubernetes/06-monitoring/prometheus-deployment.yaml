@@ -3,8 +3,6 @@ kind: Deployment
 metadata:
   name: prometheus
   namespace: cloudshelf
-  labels:
-    app: prometheus
 spec:
   replicas: 1
   selector:
@@ -28,11 +26,10 @@ spec:
             - "--storage.tsdb.path=/prometheus"
             - "--storage.tsdb.retention.time=15d"
             - "--web.enable-lifecycle"
-            - "--web.console.libraries=/usr/share/prometheus/console_libraries"
-            - "--web.console.templates=/usr/share/prometheus/consoles"
+            - "--web.external-url=/prometheus/"
+            - "--web.route-prefix=/prometheus/"
           ports:
             - containerPort: 9090
-              name: http
           volumeMounts:
             - name: prometheus-config
               mountPath: /etc/prometheus
@@ -47,13 +44,13 @@ spec:
               cpu: "500m"
           livenessProbe:
             httpGet:
-              path: /-/healthy
+              path: /prometheus/-/healthy
               port: 9090
             initialDelaySeconds: 30
             periodSeconds: 10
           readinessProbe:
             httpGet:
-              path: /-/ready
+              path: /prometheus/-/ready
               port: 9090
             initialDelaySeconds: 10
             periodSeconds: 5
@@ -69,13 +66,10 @@ kind: Service
 metadata:
   name: prometheus
   namespace: cloudshelf
-  labels:
-    app: prometheus
 spec:
   type: ClusterIP
   ports:
     - port: 9090
       targetPort: 9090
-      name: http
   selector:
     app: prometheus

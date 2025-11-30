@@ -10,11 +10,13 @@ data:
       - name: Prometheus
         type: prometheus
         access: proxy
-        url: http://prometheus.cloudshelf.svc.cluster.local:9090
+        url: http://prometheus.cloudshelf.svc.cluster.local:9090/prometheus
         isDefault: true
-        editable: true
+        editable: false
+        jsonData:
+          timeInterval: "15s"
       - name: Zipkin
         type: zipkin
         access: proxy
         url: http://zipkin.cloudshelf.svc.cluster.local:9411
-        editable: true
+        editable: false

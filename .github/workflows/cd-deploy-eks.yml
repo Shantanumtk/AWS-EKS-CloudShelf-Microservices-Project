@@ -93,13 +93,25 @@ jobs:
       - name: Deploy Prometheus and Grafana monitoring
         run: |
           echo "📊 Deploying monitoring stack..."
+          
+          # Prometheus
           kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/prometheus-rbac.yaml
           kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/prometheus-config.yaml
           kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/prometheus-deployment.yaml
+          
+          # Exporters
+          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/mongodb-exporter.yaml
+          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/kafka-exporter.yaml
+          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/postgres-exporters.yaml
+          
+          # Grafana config and dashboards
           kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/grafana-datasources.yaml
           kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/grafana-dashboards-config.yaml
-          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/grafana-dashboard-cloudshelf.yaml
+          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/grafana-dashboard-overview.yaml
           kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/grafana-dashboard-jvm.yaml
+          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/grafana-dashboard-mongodb.yaml
+          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/grafana-dashboard-kafka.yaml
+          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/grafana-dashboard-postgres.yaml
           kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/grafana-deployment.yaml
           
           echo "⏳ Waiting for monitoring stack..."
@@ -123,7 +135,7 @@ jobs:
             deployment/frontend -n cloudshelf
 
       - name: Deploy Ingress
-        run: kubectl apply -f spring-microservices-bookstore-demo/kubernetes/05-ingress/
+        run: kubectl apply -f spring-microservices-bookstore-demo/kubernetes/05-ingress/ingress.yaml
 
       - name: Update Frontend + Gateway ConfigMaps with ALB Hostname
         run: |

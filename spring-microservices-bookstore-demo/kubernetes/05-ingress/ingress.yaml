@@ -14,7 +14,7 @@ spec:
   rules:
   - http:
       paths:
-      # Grafana monitoring UI
+      # Grafana - monitoring dashboards
       - path: /grafana
         pathType: Prefix
         backend:
@@ -22,7 +22,7 @@ spec:
             name: grafana
             port:
               number: 3000
-      # Prometheus UI (optional - for debugging)
+      # Prometheus - metrics
       - path: /prometheus
         pathType: Prefix
         backend:
@@ -30,7 +30,7 @@ spec:
             name: prometheus
             port:
               number: 9090
-      # API Gateway routes
+      # API Gateway
       - path: /api
         pathType: Prefix
         backend:
