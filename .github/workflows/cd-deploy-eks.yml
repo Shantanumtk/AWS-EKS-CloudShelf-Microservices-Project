@@ -90,6 +90,22 @@ jobs:
           kubectl wait --for=condition=ready pod -l app=mongodb -n cloudshelf --timeout=300s
           kubectl wait --for=condition=ready pod -l app=kafka -n cloudshelf --timeout=300s
 
+      - name: Deploy Prometheus and Grafana monitoring
+        run: |
+          echo "📊 Deploying monitoring stack..."
+          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/prometheus-rbac.yaml
+          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/prometheus-config.yaml
+          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/prometheus-deployment.yaml
+          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/grafana-datasources.yaml
+          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/grafana-dashboards-config.yaml
+          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/grafana-dashboard-cloudshelf.yaml
+          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/grafana-dashboard-jvm.yaml
+          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/grafana-deployment.yaml
+          
+          echo "⏳ Waiting for monitoring stack..."
+          kubectl wait --for=condition=available --timeout=300s deployment/prometheus -n cloudshelf || true
+          kubectl wait --for=condition=available --timeout=300s deployment/grafana -n cloudshelf || true
+
       - name: Deploy all microservices
         run: |
           for service in api-gateway book-service author-service order-service stock-check-service message-service reviews-service frontend; do
@@ -131,8 +147,12 @@ jobs:
 
       - name: Show Deployment Summary
         run: |
-          echo "=== Cloudshelf Deployment Complete ==="
+          echo "=== CloudShelf Deployment Complete ==="
           kubectl get pods -n cloudshelf
           kubectl get ingress -n cloudshelf
           HOST=$(kubectl get ingress cloudshelf-ingress -n cloudshelf -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-          echo "Access the application at: http://$HOST"
+          echo ""
+          echo "🌐 Application URL: http://$HOST"
+          echo "📊 Grafana URL:     http://$HOST/grafana  (admin / CloudShelf2025!)"
+          echo "📈 Prometheus URL:  http://$HOST/prometheus"
+          echo "🔍 Zipkin URL:      http://$HOST:9411 (internal only via port-forward)"

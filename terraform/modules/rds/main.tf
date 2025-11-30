@@ -209,7 +209,7 @@ resource "aws_security_group_rule" "rds_from_eks_cluster" {
   from_port                = 5432
   to_port                  = 5432
   protocol                 = "tcp"
-  security_group_id        = aws_security_group.rds.id
+  security_group_id        = aws_security_group.main.id
   source_security_group_id = data.aws_eks_cluster.main.vpc_config[0].cluster_security_group_id
   description              = "Allow PostgreSQL from EKS cluster"
 }
