@@ -102,7 +102,7 @@ jobs:
           # Exporters
           kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/mongodb-exporter.yaml
           kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/kafka-exporter.yaml
-          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/postgres-exporters.yaml
+          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/postgres-exporter.yaml
           
           # Grafana config and dashboards
           kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/grafana-datasources.yaml
