@@ -22,7 +22,7 @@ spec:
         runAsUser: 65534
       containers:
         - name: prometheus
-          image: prom/prometheus:v2.47.0
+          image: 443071119316.dkr.ecr.us-east-1.amazonaws.com/cloudshelf/prometheus:v2.47.0
           args:
             - "--config.file=/etc/prometheus/prometheus.yml"
             - "--storage.tsdb.path=/prometheus"
