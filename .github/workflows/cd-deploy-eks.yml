@@ -3,8 +3,7 @@ name: CD - Deploy to EKS
 on:
   workflow_run:
     workflows: ["CI - Build and Push to ECR"]
-    types:
-      - completed
+    types: [completed]
   workflow_dispatch:
     inputs:
       environment:
@@ -12,9 +11,7 @@ on:
         required: true
         default: 'prod'
         type: choice
-        options:
-          - dev
-          - prod
+        options: [dev, prod]
 
 env:
   AWS_REGION: us-east-1
@@ -25,13 +22,13 @@ jobs:
     name: Deploy to EKS
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
-    
+
     permissions:
       contents: read
       id-token: write
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Configure AWS credentials
@@ -44,137 +41,95 @@ jobs:
       - name: Update kubeconfig
         run: |
           aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
-      
-      - name: Configure aws-auth (one-time)
-        run: |
-          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/00-namespace/aws-auth.yaml
 
       - name: Verify cluster access
         run: |
-          kubectl cluster-info
           kubectl get nodes
-      
-      - name: Update image tags in manifests
+          kubectl cluster-info
+
+      - name: Deploy namespace
+        run: kubectl apply -f spring-microservices-bookstore-demo/kubernetes/00-namespace/
+
+      - name: Update image registry in deployments
         run: |
           cd spring-microservices-bookstore-demo/kubernetes
           find 04-services -name "deployment.yaml" -type f -exec sed -i 's|image: shpro123/|image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/cloudshelf/|g' {} +
 
-      - name: Deploy namespace
+      - name: Deploy static secrets (MongoDB, Kafka, API-Gateway)
+        run: kubectl apply -f spring-microservices-bookstore-demo/kubernetes/02-secrets/
+      
+      - name: Dynamic RDS Secret for reviews-service
         run: |
-          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/00-namespace/
+          RDS_ENDPOINT=$(aws rds describe-db-instances \
+            --db-instance-identifier cloudshelf-db \
+            --region ${{ env.AWS_REGION }} \
+            --query 'DBInstances[0].Endpoint.Address' \
+            --output text)
 
-      - name: Deploy secrets
-        run: |
-          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/02-secrets/
-
-      - name: Create RDS secret for reviews-service
-        run: |
-          # Get RDS endpoint
-          RDS_ENDPOINT=$(aws rds describe-db-instances --db-instance-identifier cloudshelf-db --query 'DBInstances[0].Endpoint.Address' --output text --region ${{ env.AWS_REGION }})
-          
-          if [ -z "$RDS_ENDPOINT" ] || [ "$RDS_ENDPOINT" == "None" ]; then
-            echo "⚠️ RDS not found - skipping reviews-db-credentials secret"
+          if [[ "$RDS_ENDPOINT" == "None" || -z "$RDS_ENDPOINT" ]]; then
+            echo "❌ RDS endpoint not found — skipping reviews-db-credentials"
           else
-            echo "🔧 Creating reviews-db-credentials secret with RDS endpoint: $RDS_ENDPOINT"
+            echo "🔧 Creating reviews-db-credentials with host: $RDS_ENDPOINT"
+            kubectl delete secret reviews-db-credentials -n cloudshelf --ignore-not-found
             kubectl create secret generic reviews-db-credentials \
               --namespace cloudshelf \
               --from-literal=SPRING_DATASOURCE_URL="jdbc:postgresql://${RDS_ENDPOINT}:5432/reviews_db" \
               --from-literal=SPRING_DATASOURCE_USERNAME="reviews_user" \
               --from-literal=SPRING_DATASOURCE_PASSWORD="ReviewsSecure123!" \
               --dry-run=client -o yaml | kubectl apply -f -
-            echo "✅ reviews-db-credentials secret created"
           fi
 
       - name: Deploy ConfigMaps
-        run: |
-          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/01-configmaps/
+        run: kubectl apply -f spring-microservices-bookstore-demo/kubernetes/01-configmaps/
 
       - name: Deploy infrastructure (MongoDB, Kafka, Zipkin)
+        run: kubectl apply -f spring-microservices-bookstore-demo/kubernetes/03-infrastructure/
+
+      - name: Wait for core infrastructure
         run: |
-          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/03-infrastructure/
-          
-          echo "Waiting for MongoDB..."
           kubectl wait --for=condition=ready pod -l app=mongodb -n cloudshelf --timeout=300s
-          
-          echo "Waiting for Kafka..."
           kubectl wait --for=condition=ready pod -l app=kafka -n cloudshelf --timeout=300s
 
-      - name: Deploy microservices
+      - name: Deploy all microservices
         run: |
           for service in api-gateway book-service author-service order-service stock-check-service message-service reviews-service frontend; do
             kubectl apply -f spring-microservices-bookstore-demo/kubernetes/04-services/$service/deployment.yaml
           done
-          
-          kubectl wait --for=condition=available --timeout=600s deployment/api-gateway deployment/book-service deployment/author-service deployment/order-service deployment/stock-check-service deployment/message-service deployment/reviews-service deployment/frontend -n cloudshelf
 
-      - name: Deploy ingress
+          kubectl wait --for=condition=available --timeout=600s \
+            deployment/api-gateway \
+            deployment/book-service \
+            deployment/author-service \
+            deployment/order-service \
+            deployment/stock-check-service \
+            deployment/message-service \
+            deployment/reviews-service \
+            deployment/frontend -n cloudshelf
+
+      - name: Deploy Ingress
+        run: kubectl apply -f spring-microservices-bookstore-demo/kubernetes/05-ingress/
+
+      - name: Update Frontend + Gateway ConfigMaps with ALB Hostname
         run: |
-          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/05-ingress/
-
-      - name: Update Frontend ConfigMap with Load Balancer URL
-        run: |
-          echo "⏳ Waiting for Load Balancer hostname..."
-
-          for i in {1..40}; do
-            INGRESS_URL=$(kubectl get ingress cloudshelf-ingress -n cloudshelf -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-            if [ -n "$INGRESS_URL" ]; then
-              echo "🎯 ALB Ready: $INGRESS_URL"
-              break
-            fi
-            echo "Attempt $i/40: ALB not ready... retrying in 15s"
+          echo "⏳ Waiting for ALB..."
+          for i in {1..30}; do
+            HOST=$(kubectl get ingress cloudshelf-ingress -n cloudshelf -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+            if [[ -n "$HOST" ]]; then break; fi
             sleep 15
           done
-
-          if [ -z "$INGRESS_URL" ]; then
-            echo "❌ ALB hostname still not available — failing deployment"
+          if [[ -z "$HOST" ]]; then
+            echo "⚠️ ALB not ready — skipping CM patch"
             exit 1
           fi
-
-          echo "🔧 Applying ALB hostname to ConfigMaps..."
-
           kubectl patch configmap frontend-config -n cloudshelf --type merge -p \
-            "{\"data\":{\"NEXT_PUBLIC_API_BASE\":\"http://$INGRESS_URL/api\",\"NEXT_PUBLIC_GRAPHQL_ENDPOINT\":\"http://$INGRESS_URL/api/graphql\",\"NEXT_PUBLIC_AUTHORS_ENDPOINT\":\"http://$INGRESS_URL/api/authors\",\"NODE_ENV\":\"production\",\"NEXT_TELEMETRY_DISABLED\":\"1\"}}"
-
+            "{\"data\":{\"NEXT_PUBLIC_API_BASE\":\"http://$HOST/api\"}}"
           kubectl patch configmap api-gateway-config -n cloudshelf --type merge -p \
-            "{\"data\":{\"CORS_ALLOWED_ORIGINS\":\"http://$INGRESS_URL\"}}"
-
-          echo "🔄 Restarting deployments..."
+            "{\"data\":{\"CORS_ALLOWED_ORIGINS\":\"http://$HOST\"}}"
           kubectl rollout restart deployment/frontend -n cloudshelf
           kubectl rollout restart deployment/api-gateway -n cloudshelf
 
-          echo "🚀 ConfigMaps successfully updated with ALB hostname"
-
-      - name: Verify deployment
+      - name: Show Deployment Summary
         run: |
-          echo "=== Pods Status ==="
+          echo "=== Cloudshelf Deployment Complete ==="
           kubectl get pods -n cloudshelf
-          echo "=== Services Status ==="
-          kubectl get services -n cloudshelf
-          echo "=== Deployments Status ==="
-          kubectl get deployments -n cloudshelf
-          echo "=== Ingress Status ==="
           kubectl get ingress -n cloudshelf
-
-      - name: Get Application URL
-        run: |
-          echo "🔍 Checking Load Balancer URL..."
-          for i in {1..40}; do
-            INGRESS_URL=$(kubectl get ingress cloudshelf-ingress -n cloudshelf -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-            if [ -n "$INGRESS_URL" ]; then break; fi
-            sleep 15
-          done
-          if [ -n "$INGRESS_URL" ]; then
-            echo "🌐 Application URL: http://$INGRESS_URL"
-          else
-            echo "⚠️ ALB still not ready — check manually:"
-            echo "kubectl get ingress -n cloudshelf"
-          fi
-
-      - name: Deployment Summary
-        run: |
-          echo "=== Deployment Summary ==="
-          echo "Cluster: ${{ env.EKS_CLUSTER_NAME }}"
-          echo "Region: ${{ env.AWS_REGION }}"
-          echo "Namespace: cloudshelf"
-          echo "Image Tag: latest (SHA: ${{ github.sha }})"
-          echo "Check status: kubectl get all -n cloudshelf"
