@@ -113,6 +113,7 @@ jobs:
         run: |
           echo "⏳ Waiting for ALB..."
           for i in {1..30}; do
+            echo "Attempt $i/30..."
             HOST=$(kubectl get ingress cloudshelf-ingress -n cloudshelf -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
             if [[ -n "$HOST" ]]; then break; fi
             sleep 15
@@ -133,3 +134,5 @@ jobs:
           echo "=== Cloudshelf Deployment Complete ==="
           kubectl get pods -n cloudshelf
           kubectl get ingress -n cloudshelf
+          HOST=$(kubectl get ingress cloudshelf-ingress -n cloudshelf -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          echo "Access the application at: http://$HOST"

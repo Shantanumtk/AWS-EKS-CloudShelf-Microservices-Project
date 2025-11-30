@@ -259,9 +259,11 @@ module "rds" {
   sns_topic_arn               = module.s3_sns.sns_topic_arn
 
   tags = local.common_tags
-
+  eks_cluster_name = module.eks.cluster_name
   depends_on = [module.vpc, module.eks, module.jump_server]
 }
+
+
 
 # Data sources
 data "aws_caller_identity" "current" {}

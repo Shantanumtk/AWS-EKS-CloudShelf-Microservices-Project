@@ -129,3 +129,8 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "eks_cluster_name" {
+  description = "Name of the EKS cluster for security group access"
+  type        = string
+}

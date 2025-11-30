@@ -26,4 +26,4 @@ data:
   SPRING_CLOUD_GATEWAY_ROUTES_3_ID: "reviews-service"
   SPRING_CLOUD_GATEWAY_ROUTES_3_URI: "http://reviews-service.cloudshelf.svc.cluster.local:8086"
   SPRING_CLOUD_GATEWAY_ROUTES_3_PREDICATES_0: "Path=/api/reviews/**"
-  SPRING_CLOUD_GATEWAY_ROUTES_3_FILTERS_0: "RewritePath=/api/reviews/(?<segment>.*), /reviews/${segment}"
+  SPRING_CLOUD_GATEWAY_ROUTES_3_FILTERS_0: "StripPrefix=1"

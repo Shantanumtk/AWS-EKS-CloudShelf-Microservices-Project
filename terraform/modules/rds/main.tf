@@ -197,3 +197,19 @@ resource "aws_cloudwatch_metric_alarm" "database_storage" {
 
   alarm_actions = var.sns_topic_arn != "" ? [var.sns_topic_arn] : []
 }
+
+# Add this data source to get the EKS cluster security group
+data "aws_eks_cluster" "main" {
+  name = var.eks_cluster_name
+}
+
+# In your RDS security group resource, add this ingress rule:
+resource "aws_security_group_rule" "rds_from_eks_cluster" {
+  type                     = "ingress"
+  from_port                = 5432
+  to_port                  = 5432
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.rds.id
+  source_security_group_id = data.aws_eks_cluster.main.vpc_config[0].cluster_security_group_id
+  description              = "Allow PostgreSQL from EKS cluster"
+}
