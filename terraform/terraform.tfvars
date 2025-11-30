@@ -83,13 +83,13 @@ enable_rds = true
 
 # RDS Configuration (only used if enable_rds = true)
 rds_engine_version              = "16"
-rds_engine_minor_version        = "1"
+rds_engine_minor_version        = "4"
 rds_instance_class              = "db.t3.micro"
 rds_allocated_storage           = 20
 rds_max_allocated_storage       = 50
 rds_database_name               = "reviews_db"
 rds_master_username             = "reviews_user"
-rds_master_password             = "CReviewsSecure123!" # CHANGE THIS!
+rds_master_password             = "ReviewsSecure123!" # CHANGE THIS!
 rds_backup_retention_period     = 7
 rds_backup_window               = "03:00-04:00"
 rds_maintenance_window          = "mon:04:00-mon:05:00"
