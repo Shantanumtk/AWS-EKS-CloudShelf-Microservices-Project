@@ -113,6 +113,9 @@ jobs:
           kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/grafana-dashboard-kafka.yaml
           kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/grafana-dashboard-postgres.yaml
           kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/grafana-deployment.yaml
+          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/kube-state-metrics.yaml
+          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/node-exporter.yaml
+          kubectl apply -f spring-microservices-bookstore-demo/kubernetes/06-monitoring/grafana-dashboard-k8s.yaml
           
           echo "⏳ Waiting for monitoring stack..."
           kubectl wait --for=condition=available --timeout=300s deployment/prometheus -n cloudshelf || true
@@ -140,8 +143,8 @@ jobs:
       - name: Update Frontend + Gateway ConfigMaps with ALB Hostname
         run: |
           echo "⏳ Waiting for ALB..."
-          for i in {1..30}; do
-            echo "Attempt $i/30..."
+          for i in {1..40}; do
+            echo "Attempt $i/40..."
             HOST=$(kubectl get ingress cloudshelf-ingress -n cloudshelf -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
             if [[ -n "$HOST" ]]; then break; fi
             sleep 15
