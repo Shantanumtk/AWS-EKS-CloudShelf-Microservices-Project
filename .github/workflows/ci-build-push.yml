@@ -55,6 +55,11 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Ensure ECR repository exists (auto-create)
+        run: |
+          aws ecr describe-repositories --repository-names cloudshelf/${{ matrix.service }} || \
+          aws ecr create-repository --repository-name cloudshelf/${{ matrix.service }} --region ${{ env.AWS_REGION }}
+
       - name: Set up JDK 17 (for Java services)
         if: matrix.service != 'frontend'
         uses: actions/setup-java@v4
@@ -106,10 +111,8 @@ jobs:
         if: needs.build-and-push.result == 'success'
         run: |
           echo "✅ All images built and pushed successfully!"
-          # Add SNS notification here if needed
           
       - name: Send Failure Notification
         if: needs.build-and-push.result == 'failure'
         run: |
           echo "❌ Build failed!"
-          # Add SNS notification here if needed
