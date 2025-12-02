@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - develop
+      - feature/**
     paths:
       - 'spring-microservices-bookstore-demo/**'
       - '.github/workflows/ci-build-push.yml'
@@ -36,6 +37,7 @@ jobs:
           - stock-check-service
           - message-service
           - reviews-service
+          - cart-service
           - frontend
 
     steps:

@@ -48,8 +48,8 @@ spec:
               mountPath: /tmp/dashboards/postgres.json
               subPath: postgres.json
             - name: dashboard-k8s                 # <<< NEW
-              mountPath: /tmp/dashboards/k8s.json # <<< NEW
-              subPath: k8s.json                   # <<< NEW
+              mountPath: /tmp/dashboards/k8s-cluster.json # <<< NEW
+              subPath: k8s-cluster.json                   # <<< NEW
             - name: grafana-dashboards
               mountPath: /dashboards
       containers:

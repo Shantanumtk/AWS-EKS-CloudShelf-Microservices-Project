@@ -123,7 +123,7 @@ jobs:
 
       - name: Deploy all microservices
         run: |
-          for service in api-gateway book-service author-service order-service stock-check-service message-service reviews-service frontend; do
+          for service in api-gateway book-service author-service order-service stock-check-service message-service reviews-service cart-service frontend; do
             kubectl apply -f spring-microservices-bookstore-demo/kubernetes/04-services/$service/deployment.yaml
           done
 
@@ -135,6 +135,7 @@ jobs:
             deployment/stock-check-service \
             deployment/message-service \
             deployment/reviews-service \
+            deployment/cart-service \
             deployment/frontend -n cloudshelf
 
       - name: Deploy Ingress
@@ -171,3 +172,5 @@ jobs:
           echo "📊 Grafana URL:     http://$HOST/grafana  (admin / CloudShelf2025!)"
           echo "📈 Prometheus URL:  http://$HOST/prometheus"
           echo "🔍 Zipkin URL:      http://$HOST:9411 (internal only via port-forward)"
+          echo "====================================="
+          

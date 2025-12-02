@@ -10,7 +10,6 @@ spec:
       targetPort: 6379
   selector:
     app: redis
-
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -29,6 +28,13 @@ spec:
     spec:
       containers:
         - name: redis
-          image: redis:7-alpine
+          image: 443071119316.dkr.ecr.us-east-1.amazonaws.com/cloudshelf/redis:7-alpine
           ports:
             - containerPort: 6379
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
