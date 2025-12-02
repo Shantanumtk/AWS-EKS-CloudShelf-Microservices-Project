@@ -13,6 +13,11 @@ resource "aws_db_subnet_group" "main" {
   )
 }
 
+# Random suffix for secret name to avoid conflicts
+resource "random_id" "secret_suffix" {
+  byte_length = 4
+}
+
 # RDS Security Group
 resource "aws_security_group" "main" {
   name_prefix = "${var.project_name}-rds-"
@@ -139,7 +144,7 @@ resource "aws_db_instance" "main" {
 
 # Secrets Manager for RDS Credentials
 resource "aws_secretsmanager_secret" "rds_credentials" {
-  name        = "${var.project_name}-rds-credentials"
+  name        = "${var.project_name}-rds-credentials-${random_id.secret_suffix.hex}"
   description = "RDS database credentials for CloudShelf"
 
   tags = var.tags

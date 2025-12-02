@@ -12,6 +12,7 @@ data:
     scrape_configs:
       # Prometheus self-monitoring
       - job_name: 'prometheus'
+        metrics_path: /prometheus/metrics
         static_configs:
           - targets: ['localhost:9090']
 
@@ -81,3 +82,20 @@ data:
       - job_name: 'postgres-stock'
         static_configs:
           - targets: ['postgres-stock-exporter.cloudshelf.svc.cluster.local:9187']
+
+      # Kube State Metrics
+      - job_name: 'kube-state-metrics'
+        static_configs:
+          - targets: ['kube-state-metrics.cloudshelf.svc.cluster.local:8080']
+
+      # Node Exporter (runs on each node)
+      - job_name: 'node-exporter'
+        kubernetes_sd_configs:
+          - role: node
+        relabel_configs:
+          - source_labels: [__address__]
+            regex: (.+):(.+)
+            target_label: __address__
+            replacement: ${1}:9100
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
