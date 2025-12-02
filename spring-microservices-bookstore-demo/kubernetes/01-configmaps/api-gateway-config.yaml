@@ -27,3 +27,6 @@ data:
   SPRING_CLOUD_GATEWAY_ROUTES_3_URI: "http://reviews-service.cloudshelf.svc.cluster.local:8086"
   SPRING_CLOUD_GATEWAY_ROUTES_3_PREDICATES_0: "Path=/api/reviews/**"
   SPRING_CLOUD_GATEWAY_ROUTES_3_FILTERS_0: "StripPrefix=1"
+  SPRING_CLOUD_GATEWAY_ROUTES_4_ID: "cart-service"
+  SPRING_CLOUD_GATEWAY_ROUTES_4_URI: "http://cart-service.cloudshelf.svc.cluster.local:8087"
+  SPRING_CLOUD_GATEWAY_ROUTES_4_PREDICATES_0: "Path=/api/cart/**"

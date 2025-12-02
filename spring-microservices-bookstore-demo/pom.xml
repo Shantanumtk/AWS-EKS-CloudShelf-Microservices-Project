@@ -23,6 +23,7 @@
         <module>message-service</module>
         <module>author-service</module>
         <module>reviews-service</module>
+        <module>cart-service</module>
     </modules>
 
     <properties>
