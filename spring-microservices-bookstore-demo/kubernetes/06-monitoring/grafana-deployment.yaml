@@ -47,6 +47,9 @@ spec:
             - name: dashboard-postgres
               mountPath: /tmp/dashboards/postgres.json
               subPath: postgres.json
+            - name: dashboard-k8s                 # <<< NEW
+              mountPath: /tmp/dashboards/k8s.json # <<< NEW
+              subPath: k8s.json                   # <<< NEW
             - name: grafana-dashboards
               mountPath: /dashboards
       containers:
@@ -127,6 +130,9 @@ spec:
         - name: dashboard-postgres
           configMap:
             name: grafana-dashboard-postgres
+        - name: dashboard-k8s              # <<< NEW
+          configMap:                       # <<< NEW
+            name: grafana-dashboard-k8s    # <<< NEW
         - name: grafana-dashboards
           emptyDir: {}
         - name: grafana-data

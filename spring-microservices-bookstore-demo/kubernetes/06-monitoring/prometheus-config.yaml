@@ -68,25 +68,22 @@ data:
         static_configs:
           - targets: ['kafka-exporter.cloudshelf.svc.cluster.local:9308']
 
-      # PostgreSQL Author Exporter
-      - job_name: 'postgres-author'
+      # PostgreSQL Exporters
+      - job_name: 'postgres-exporter'
         static_configs:
-          - targets: ['postgres-author-exporter.cloudshelf.svc.cluster.local:9187']
+          - targets:
+              - 'postgres-author-exporter.cloudshelf.svc.cluster.local:9187'
+              - 'postgres-order-exporter.cloudshelf.svc.cluster.local:9187'
+              - 'postgres-stock-exporter.cloudshelf.svc.cluster.local:9187'
 
-      # PostgreSQL Order Exporter
-      - job_name: 'postgres-order'
-        static_configs:
-          - targets: ['postgres-order-exporter.cloudshelf.svc.cluster.local:9187']
-
-      # PostgreSQL Stock Exporter
-      - job_name: 'postgres-stock'
-        static_configs:
-          - targets: ['postgres-stock-exporter.cloudshelf.svc.cluster.local:9187']
-
-      # Kube State Metrics
+      # Kube State Metrics (Service Discovery)
       - job_name: 'kube-state-metrics'
-        static_configs:
-          - targets: ['kube-state-metrics.cloudshelf.svc.cluster.local:8080']
+        kubernetes_sd_configs:
+          - role: endpoints
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_name]
+            regex: kube-state-metrics
+            action: keep
 
       # Node Exporter (runs on each node)
       - job_name: 'node-exporter'
