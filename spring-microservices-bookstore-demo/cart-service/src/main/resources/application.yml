@@ -5,9 +5,10 @@ spring:
   application:
     name: cart-service
 
-  redis:
-    host: redis
-    port: 6379
+  data:
+    redis:
+      host: redis.cloudshelf.svc.cluster.local
+      port: 6379
 
 feign:
   client:
@@ -15,8 +16,7 @@ feign:
       default:
         connectTimeout: 5000
         readTimeout: 5000
-        
-# Management and Actuator
+
 management:
   endpoints:
     web:
@@ -28,8 +28,6 @@ management:
   health:
     circuitbreakers:
       enabled: true
-
-  # Prometheus metrics
   metrics:
     export:
       prometheus:
