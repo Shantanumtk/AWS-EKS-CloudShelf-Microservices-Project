@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - develop
+      - feature/**
     paths:
       - 'spring-microservices-bookstore-demo/**'
       - '.github/workflows/ci-build-push.yml'
@@ -21,11 +22,9 @@ jobs:
   build-and-push:
     name: Build and Push Docker Images
     runs-on: ubuntu-latest
-    
     permissions:
       contents: read
       id-token: write
-
     strategy:
       matrix:
         service:
@@ -36,6 +35,7 @@ jobs:
           - stock-check-service
           - message-service
           - reviews-service
+          - cart-service
           - frontend
 
     steps:
@@ -52,6 +52,22 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Ensure ECR repository exists (auto-create)
+        run: |
+          REPO_NAME="cloudshelf/${{ matrix.service }}"
+          echo "Checking if repository ${REPO_NAME} exists..."
+          if aws ecr describe-repositories --repository-names "${REPO_NAME}" 2>/dev/null; then
+            echo "✅ Repository ${REPO_NAME} already exists"
+          else
+            echo "📦 Repository ${REPO_NAME} does not exist, creating..."
+            aws ecr create-repository \
+              --repository-name "${REPO_NAME}" \
+              --region ${{ env.AWS_REGION }} \
+              --image-scanning-configuration scanOnPush=true \
+              --image-tag-mutability MUTABLE
+            echo "✅ Repository ${REPO_NAME} created successfully"
+          fi
 
       - name: Set up JDK 17 (for Java services)
         if: matrix.service != 'frontend'
@@ -98,16 +114,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-and-push
     if: always()
-    
     steps:
       - name: Send Success Notification
         if: needs.build-and-push.result == 'success'
         run: |
           echo "✅ All images built and pushed successfully!"
-          # Add SNS notification here if needed
-          
+
       - name: Send Failure Notification
         if: needs.build-and-push.result == 'failure'
         run: |
           echo "❌ Build failed!"
-          # Add SNS notification here if needed

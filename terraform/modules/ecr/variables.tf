@@ -13,7 +13,10 @@ variable "service_names" {
     "order-service",
     "stock-check-service",
     "message-service",
+    "reviews-service",
+    "cart-service",
     "frontend"
+
   ]
 }
 

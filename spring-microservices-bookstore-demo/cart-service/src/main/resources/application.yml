@@ -1,0 +1,40 @@
+server:
+  port: 8087
+
+spring:
+  application:
+    name: cart-service
+
+  redis:
+    host: redis
+    port: 6379
+
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 5000
+        
+# Management and Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics,circuitbreakers
+  endpoint:
+    health:
+      show-details: always
+  health:
+    circuitbreakers:
+      enabled: true
+
+  # Prometheus metrics
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+logging:
+  level:
+    org.springframework.cloud.openfeign: DEBUG

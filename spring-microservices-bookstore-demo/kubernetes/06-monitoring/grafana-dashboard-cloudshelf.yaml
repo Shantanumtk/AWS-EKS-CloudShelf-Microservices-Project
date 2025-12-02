@@ -30,15 +30,15 @@ data:
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
-                  {"color": "green", "value": null},
-                  {"color": "yellow", "value": 0.5},
-                  {"color": "red", "value": 1}
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 0.5 },
+                  { "color": "red", "value": 1 }
                 ]
               },
               "unit": "short"
             }
           },
-          "gridPos": {"h": 4, "w": 4, "x": 0, "y": 0},
+          "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
           "id": 1,
           "options": {
             "colorMode": "value",
@@ -76,15 +76,15 @@ data:
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
-                  {"color": "green", "value": null},
-                  {"color": "yellow", "value": 0.5},
-                  {"color": "red", "value": 1}
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 0.5 },
+                  { "color": "red", "value": 1 }
                 ]
               },
               "unit": "short"
             }
           },
-          "gridPos": {"h": 4, "w": 4, "x": 4, "y": 0},
+          "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
           "id": 2,
           "options": {
             "colorMode": "value",
@@ -121,15 +121,15 @@ data:
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
-                  {"color": "green", "value": null},
-                  {"color": "yellow", "value": 0.5},
-                  {"color": "red", "value": 1}
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 0.5 },
+                  { "color": "red", "value": 1 }
                 ]
               },
               "unit": "short"
             }
           },
-          "gridPos": {"h": 4, "w": 4, "x": 8, "y": 0},
+          "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
           "id": 3,
           "options": {
             "colorMode": "value",
@@ -166,15 +166,15 @@ data:
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
-                  {"color": "green", "value": null},
-                  {"color": "yellow", "value": 0.5},
-                  {"color": "red", "value": 1}
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 0.5 },
+                  { "color": "red", "value": 1 }
                 ]
               },
               "unit": "short"
             }
           },
-          "gridPos": {"h": 4, "w": 4, "x": 12, "y": 0},
+          "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
           "id": 4,
           "options": {
             "colorMode": "value",
@@ -211,15 +211,15 @@ data:
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
-                  {"color": "green", "value": null},
-                  {"color": "yellow", "value": 0.5},
-                  {"color": "red", "value": 1}
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 0.5 },
+                  { "color": "red", "value": 1 }
                 ]
               },
               "unit": "short"
             }
           },
-          "gridPos": {"h": 4, "w": 4, "x": 16, "y": 0},
+          "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
           "id": 5,
           "options": {
             "colorMode": "value",
@@ -256,15 +256,15 @@ data:
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
-                  {"color": "green", "value": null},
-                  {"color": "yellow", "value": 0.5},
-                  {"color": "red", "value": 1}
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 0.5 },
+                  { "color": "red", "value": 1 }
                 ]
               },
               "unit": "short"
             }
           },
-          "gridPos": {"h": 4, "w": 4, "x": 20, "y": 0},
+          "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
           "id": 6,
           "options": {
             "colorMode": "value",
@@ -294,7 +294,52 @@ data:
           },
           "fieldConfig": {
             "defaults": {
-              "color": {"mode": "palette-classic"},
+              "color": {
+                "mode": "palette-classic"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 0.5 },
+                  { "color": "red", "value": 1 }
+                ]
+              },
+              "unit": "short"
+            }
+          },
+          "gridPos": { "h": 4, "w": 4, "x": 0, "y": 20 },
+          "id": 11,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": ["lastNotNull"],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "expr": "up{job=\"cart-service\"}",
+              "refId": "A"
+            }
+          ],
+          "title": "Cart Service",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
               "custom": {
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
@@ -304,29 +349,34 @@ data:
                 "drawStyle": "line",
                 "fillOpacity": 10,
                 "gradientMode": "none",
-                "hideFrom": {"legend": false, "tooltip": false, "viz": false},
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 5,
-                "scaleDistribution": {"type": "linear"},
+                "scaleDistribution": { "type": "linear" },
                 "showPoints": "never",
                 "spanNulls": false,
-                "stacking": {"group": "A", "mode": "none"},
-                "thresholdsStyle": {"mode": "off"}
+                "stacking": { "group": "A", "mode": "none" },
+                "thresholdsStyle": { "mode": "off" }
               },
               "mappings": [],
               "thresholds": {
                 "mode": "absolute",
-                "steps": [{"color": "green", "value": null}]
+                "steps": [ { "color": "green", "value": null } ]
               },
               "unit": "reqps"
             }
           },
-          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
           "id": 7,
           "options": {
-            "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true},
-            "tooltip": {"mode": "multi", "sort": "desc"}
+            "legend": {
+              "calcs": ["mean", "max"],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": { "mode": "multi", "sort": "desc" }
           },
           "targets": [
             {
@@ -345,7 +395,7 @@ data:
           },
           "fieldConfig": {
             "defaults": {
-              "color": {"mode": "palette-classic"},
+              "color": { "mode": "palette-classic" },
               "custom": {
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
@@ -355,29 +405,34 @@ data:
                 "drawStyle": "line",
                 "fillOpacity": 10,
                 "gradientMode": "none",
-                "hideFrom": {"legend": false, "tooltip": false, "viz": false},
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 5,
-                "scaleDistribution": {"type": "linear"},
+                "scaleDistribution": { "type": "linear" },
                 "showPoints": "never",
                 "spanNulls": false,
-                "stacking": {"group": "A", "mode": "none"},
-                "thresholdsStyle": {"mode": "off"}
+                "stacking": { "group": "A", "mode": "none" },
+                "thresholdsStyle": { "mode": "off" }
               },
               "mappings": [],
               "thresholds": {
                 "mode": "absolute",
-                "steps": [{"color": "green", "value": null}]
+                "steps": [ { "color": "green", "value": null } ]
               },
               "unit": "s"
             }
           },
-          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
           "id": 8,
           "options": {
-            "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true},
-            "tooltip": {"mode": "multi", "sort": "desc"}
+            "legend": {
+              "calcs": ["mean", "max"],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": { "mode": "multi", "sort": "desc" }
           },
           "targets": [
             {
@@ -396,7 +451,7 @@ data:
           },
           "fieldConfig": {
             "defaults": {
-              "color": {"mode": "palette-classic"},
+              "color": { "mode": "palette-classic" },
               "custom": {
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
@@ -406,29 +461,34 @@ data:
                 "drawStyle": "line",
                 "fillOpacity": 10,
                 "gradientMode": "none",
-                "hideFrom": {"legend": false, "tooltip": false, "viz": false},
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 5,
-                "scaleDistribution": {"type": "linear"},
+                "scaleDistribution": { "type": "linear" },
                 "showPoints": "never",
                 "spanNulls": false,
-                "stacking": {"group": "A", "mode": "none"},
-                "thresholdsStyle": {"mode": "off"}
+                "stacking": { "group": "A", "mode": "none" },
+                "thresholdsStyle": { "mode": "off" }
               },
               "mappings": [],
               "thresholds": {
                 "mode": "absolute",
-                "steps": [{"color": "green", "value": null}]
+                "steps": [ { "color": "green", "value": null } ]
               },
               "unit": "bytes"
             }
           },
-          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
           "id": 9,
           "options": {
-            "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true},
-            "tooltip": {"mode": "multi", "sort": "desc"}
+            "legend": {
+              "calcs": ["mean", "max"],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": { "mode": "multi", "sort": "desc" }
           },
           "targets": [
             {
@@ -447,7 +507,7 @@ data:
           },
           "fieldConfig": {
             "defaults": {
-              "color": {"mode": "palette-classic"},
+              "color": { "mode": "palette-classic" },
               "custom": {
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
@@ -457,29 +517,34 @@ data:
                 "drawStyle": "line",
                 "fillOpacity": 10,
                 "gradientMode": "none",
-                "hideFrom": {"legend": false, "tooltip": false, "viz": false},
+                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 5,
-                "scaleDistribution": {"type": "linear"},
+                "scaleDistribution": { "type": "linear" },
                 "showPoints": "never",
                 "spanNulls": false,
-                "stacking": {"group": "A", "mode": "none"},
-                "thresholdsStyle": {"mode": "off"}
+                "stacking": { "group": "A", "mode": "none" },
+                "thresholdsStyle": { "mode": "off" }
               },
               "mappings": [],
               "thresholds": {
                 "mode": "absolute",
-                "steps": [{"color": "green", "value": null}]
+                "steps": [ { "color": "green", "value": null } ]
               },
               "unit": "percent"
             }
           },
-          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
           "id": 10,
           "options": {
-            "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true},
-            "tooltip": {"mode": "multi", "sort": "desc"}
+            "legend": {
+              "calcs": ["mean", "max"],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": { "mode": "multi", "sort": "desc" }
           },
           "targets": [
             {
@@ -496,11 +561,11 @@ data:
       "schemaVersion": 38,
       "style": "dark",
       "tags": ["cloudshelf", "microservices"],
-      "templating": {"list": []},
-      "time": {"from": "now-1h", "to": "now"},
+      "templating": { "list": [] },
+      "time": { "from": "now-1h", "to": "now" },
       "timepicker": {},
       "timezone": "",
       "title": "CloudShelf Overview",
       "uid": "cloudshelf-overview",
-      "version": 1
+      "version": 2
     }

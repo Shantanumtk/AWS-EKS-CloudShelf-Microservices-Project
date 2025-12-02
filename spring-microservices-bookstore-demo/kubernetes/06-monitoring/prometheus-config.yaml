@@ -57,6 +57,12 @@ data:
         metrics_path: /actuator/prometheus
         static_configs:
           - targets: ['reviews-service.cloudshelf.svc.cluster.local:8086']
+  
+      # Cart Service
+      - job_name: 'cart-service'
+        metrics_path: /actuator/prometheus
+        static_configs:
+          - targets: ['cart-service.cloudshelf.svc.cluster.local:8087']
 
       # MongoDB Exporter
       - job_name: 'mongodb'
