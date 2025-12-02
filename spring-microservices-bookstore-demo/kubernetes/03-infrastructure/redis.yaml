@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
         - name: redis
-          image: 443071119316.dkr.ecr.us-east-1.amazonaws.com/cloudshelf/redis:7-alpine
+          image: redis:7-alpine
           ports:
             - containerPort: 6379
           resources:
