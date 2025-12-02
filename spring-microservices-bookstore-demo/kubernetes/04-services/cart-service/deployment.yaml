@@ -16,21 +16,41 @@ spec:
       containers:
         - name: cart-service
           image: 443071119316.dkr.ecr.us-east-1.amazonaws.com/cloudshelf/cart-service:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 8087
           envFrom:
             - configMapRef:
                 name: cart-service-config
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
           readinessProbe:
             httpGet:
               path: /actuator/health
               port: 8087
-            initialDelaySeconds: 10
+            initialDelaySeconds: 30
             periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /actuator/health
               port: 8087
-            initialDelaySeconds: 30
+            initialDelaySeconds: 60
             periodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cart-service
+  namespace: cloudshelf
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8087
+      targetPort: 8087
+  selector:
+    app: cart-service
