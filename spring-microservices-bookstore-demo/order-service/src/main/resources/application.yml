@@ -4,20 +4,17 @@ server:
 spring:
   application:
     name: order-service
-  
   # PostgreSQL configuration
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/order_service}
     username: ${SPRING_DATASOURCE_USERNAME:admin}
     password: ${SPRING_DATASOURCE_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
-  
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update
     show-sql: false
-  
   # Kafka configuration
   kafka:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
@@ -29,9 +26,9 @@ spring:
 stock:
   check:
     service:
-      url: ${STOCK_CHECK_SERVICE_URL:http://localhost:8080}
+      url: ${STOCK_CHECK_SERVICE_URL:http://localhost:8083}
 
-# Resilience4j Circuit Breaker
+# Resilience4j Circuit Breaker and TimeLimiter
 resilience4j:
   circuitbreaker:
     instances:
@@ -40,6 +37,11 @@ resilience4j:
         wait-duration-in-open-state: 10000
         sliding-window-size: 10
         register-health-indicator: true
+  timelimiter:
+    instances:
+      stock-check:
+        timeout-duration: 10s
+        cancel-running-future: true
 
 # Management and Actuator
 management:
@@ -53,16 +55,13 @@ management:
   health:
     circuitbreakers:
       enabled: true
-  
   # Zipkin tracing
   zipkin:
     tracing:
       endpoint: ${MANAGEMENT_ZIPKIN_TRACING_ENDPOINT:http://localhost:9411/api/v2/spans}
-  
   tracing:
     sampling:
       probability: 1.0
-  
   # Prometheus metrics
   metrics:
     export:
