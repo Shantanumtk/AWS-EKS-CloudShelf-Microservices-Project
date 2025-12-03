@@ -53,7 +53,8 @@ service_names = [
   "stock-check-service",
   "message-service",
   "frontend",
-  "reviews-service"
+  "reviews-service",
+  "cart-service"
 ]
 
 ecr_image_tag_mutability = "MUTABLE"

@@ -18,7 +18,7 @@ spec:
         image: 443071119316.dkr.ecr.us-east-1.amazonaws.com/cloudshelf/stock-check-service:latest
         imagePullPolicy: IfNotPresent
         ports:
-        - containerPort: 8080
+        - containerPort: 8083
         envFrom:
         - configMapRef:
             name: stock-check-service-config
@@ -37,20 +37,20 @@ spec:
         startupProbe:
           httpGet:
             path: /actuator/health
-            port: 8080
+            port: 8083
           initialDelaySeconds: 60
           periodSeconds: 10
           failureThreshold: 60
         livenessProbe:
           httpGet:
             path: /actuator/health
-            port: 8080
+            port: 8083
           initialDelaySeconds: 0
           periodSeconds: 10
         readinessProbe:
           httpGet:
             path: /actuator/health
-            port: 8080
+            port: 8083
           initialDelaySeconds: 0
           periodSeconds: 5
 ---
@@ -62,7 +62,7 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-  - port: 8080
-    targetPort: 8080
+  - port: 8083
+    targetPort: 8083
   selector:
     app: stock-check-service

@@ -47,7 +47,9 @@ variable "service_names" {
     "order-service",
     "stock-check-service",
     "message-service",
-    "frontend"
+    "frontend",
+    "reviews-service",
+    "cart-service"
   ]
 }
 
