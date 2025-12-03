@@ -21,7 +21,7 @@ public class CartController {
     @PostMapping("/{userId}/add")
     public Cart addToCart(@PathVariable String userId,
                           @RequestBody CartItem item) {
-        return cartService.addToCart(userId, item);
+        return cartService.addItem(userId, item);  // Changed from addToCart to addItem
     }
 
     @DeleteMapping("/{userId}/remove/{bookId}")
