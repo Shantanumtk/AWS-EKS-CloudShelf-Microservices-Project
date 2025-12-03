@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -84,10 +85,14 @@ public class CartService {
 
         request.setItems(orderItems);
 
-        String orderId = orderServiceClient.placeOrder(request);
+        Map<String, String> response = orderServiceClient.placeOrder(request);
+
+    if (!"success".equals(response.get("status"))) {
+        throw new RuntimeException("Order failed: " + response.get("message"));
+    }
 
         clearCart(userId);
 
-        return orderId;
+        return response.get("orderId");
     }
 }

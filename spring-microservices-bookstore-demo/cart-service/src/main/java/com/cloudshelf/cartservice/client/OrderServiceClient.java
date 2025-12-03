@@ -1,6 +1,9 @@
 package com.cloudshelf.cartservice.client;
 
 import com.cloudshelf.cartservice.dto.OrderRequest;
+
+import java.util.Map;
+
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -11,6 +14,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 )
 public interface OrderServiceClient {
 
-    @PostMapping("/api/orders")
-    String placeOrder(@RequestBody OrderRequest request);
+    @PostMapping("/api/order")
+    Map<String, String> placeOrder(@RequestBody OrderRequest request);
 }
