@@ -2,7 +2,7 @@ package com.cloudshelf.cartservice.service;
 
 import com.cloudshelf.cartservice.client.OrderServiceClient;
 import com.cloudshelf.cartservice.client.StockCheckClient;
-import com.cloudshelf.cartservice.dto.OrderItem;
+import com.cloudshelf.cartservice.dto.OrderLineItemsDto;
 import com.cloudshelf.cartservice.dto.OrderRequest;
 import com.cloudshelf.cartservice.dto.StockCheckResponse;
 import com.cloudshelf.cartservice.model.Cart;
@@ -34,7 +34,7 @@ public class CartService {
     }
 
     public Cart addToCart(String userId, CartItem item) {
-
+        // Validate stock with StockCheck-Service
         StockCheckResponse response =
                 stockCheckClient.checkStock(item.getBookId(), item.getQuantity());
 
@@ -44,22 +44,19 @@ public class CartService {
 
         Cart cart = getCart(userId);
 
+        // Replace existing item if book already exists
         cart.getItems().removeIf(i -> i.getBookId().equals(item.getBookId()));
-
         cart.getItems().add(item);
 
         redisTemplate.opsForValue().set(key(userId), cart);
-
         return cart;
     }
 
     public Cart removeItem(String userId, String bookId) {
         Cart cart = getCart(userId);
-
         cart.getItems().removeIf(i -> i.getBookId().equals(bookId));
 
         redisTemplate.opsForValue().set(key(userId), cart);
-
         return cart;
     }
 
@@ -68,29 +65,35 @@ public class CartService {
     }
 
     public String checkout(String userId) {
-
         Cart cart = getCart(userId);
 
         if (cart.getItems().isEmpty()) {
             throw new RuntimeException("Cart is empty. Cannot checkout.");
         }
 
+        // Build OrderRequest to send to order-service
         OrderRequest request = new OrderRequest();
         request.setUserId(userId);
 
-        List<OrderItem> orderItems = cart.getItems()
+        List<OrderLineItemsDto> orderItems = cart.getItems()
                 .stream()
-                .map(i -> new OrderItem(i.getBookId(), i.getQuantity(), i.getPrice()))
+                .map(i -> new OrderLineItemsDto(i.getBookId(),i.getQuantity(),i.getPrice()))
                 .collect(Collectors.toList());
 
         request.setOrderLineItemsDtoList(orderItems);
 
+        // Call the Order-Service (Feign Client)
         Map<String, String> response = orderServiceClient.placeOrder(request);
 
-    if (!"success".equals(response.get("status"))) {
-        throw new RuntimeException("Order failed: " + response.get("message"));
-    }
+        if (response == null || response.get("status") == null) {
+            throw new RuntimeException("Invalid order-service response.");
+        }
 
+        if (!"success".equalsIgnoreCase(response.get("status"))) {
+            throw new RuntimeException("Order failed: " + response.get("message"));
+        }
+
+        // SUCCESS → clear cart
         clearCart(userId);
 
         return response.get("orderId");
