@@ -17,9 +17,9 @@ feign:
         connectTimeout: 5000
         readTimeout: 5000
       stock-check-service:
-        url: http://stock-check-service.cloudshelf.svc.cluster.local:8080
+        url: http://stock-check-service.cloudshelf.svc.cluster.local:8083
       order-service:
-        url: http://order-service.cloudshelf.svc.cluster.local:8080  
+        url: http://order-service.cloudshelf.svc.cluster.local:8082  
 management:
   endpoints:
     web:
