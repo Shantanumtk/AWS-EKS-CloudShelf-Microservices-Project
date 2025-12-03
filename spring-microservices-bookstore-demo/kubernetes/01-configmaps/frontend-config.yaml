@@ -4,8 +4,8 @@ metadata:
   name: frontend-config
   namespace: cloudshelf
 data:
-  NEXT_PUBLIC_API_BASE: "http://${PUBLIC_IP}:32250/api"
-  NEXT_PUBLIC_GRAPHQL_ENDPOINT: "http://${PUBLIC_IP}:32250/api/graphql"
-  NEXT_PUBLIC_AUTHORS_ENDPOINT: "http://${PUBLIC_IP}:32250/api/authors"
+  NEXT_PUBLIC_API_BASE_URL: "http://k8s-cloudshe-cloudshe-796e07ef43-1342598769.us-east-1.elb.amazonaws.com/api"
+  NEXT_PUBLIC_API_GATEWAY_URL: "http://k8s-cloudshe-cloudshe-796e07ef43-1342598769.us-east-1.elb.amazonaws.com/api/graphql"
+  NEXT_PUBLIC_USE_DUMMY_DATA: "false"
   NODE_ENV: "production"
   NEXT_TELEMETRY_DISABLED: "1"
