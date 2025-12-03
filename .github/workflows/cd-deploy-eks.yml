@@ -232,7 +232,11 @@ jobs:
           
           echo "🔧 Updating ConfigMaps with ALB hostname..."
           kubectl patch configmap frontend-config -n cloudshelf --type merge -p \
-            "{\"data\":{\"NEXT_PUBLIC_API_BASE\":\"http://$HOST/api\"}}"
+            "{\"data\":{\"NEXT_PUBLIC_API_BASE_URL\":\"http://$HOST/api\"}}"
+
+          kubectl patch configmap frontend-config -n cloudshelf --type merge -p \
+            "{\"data\":{\"NEXT_PUBLIC_API_GATEWAY_URL\":\"http://$HOST/api/graphql\"}}"
+
           kubectl patch configmap api-gateway-config -n cloudshelf --type merge -p \
             "{\"data\":{\"CORS_ALLOWED_ORIGINS\":\"http://$HOST\"}}"
           
