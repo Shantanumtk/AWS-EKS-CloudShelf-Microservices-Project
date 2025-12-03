@@ -80,10 +80,10 @@ public class CartService {
 
         List<OrderItem> orderItems = cart.getItems()
                 .stream()
-                .map(i -> new OrderItem(i.getBookId(), i.getQuantity()))
+                .map(i -> new OrderItem(i.getBookId(), i.getQuantity(), i.getPrice()))
                 .collect(Collectors.toList());
 
-        request.setItems(orderItems);
+        request.setOrderLineItemsDtoList(orderItems);
 
         Map<String, String> response = orderServiceClient.placeOrder(request);
 

@@ -5,9 +5,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 public class OrderItem {
-    private String bookId;
-    private int quantity;
+    private String skuCode;
+    private Integer quantity;
+    private Double price;
 }

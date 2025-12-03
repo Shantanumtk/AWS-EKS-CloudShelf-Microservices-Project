@@ -44,7 +44,7 @@ data:
       - job_name: 'stock-check-service'
         metrics_path: /actuator/prometheus
         static_configs:
-          - targets: ['stock-check-service.cloudshelf.svc.cluster.local:8080']
+          - targets: ['stock-check-service.cloudshelf.svc.cluster.local:8083']
 
       # Message Service
       - job_name: 'message-service'
