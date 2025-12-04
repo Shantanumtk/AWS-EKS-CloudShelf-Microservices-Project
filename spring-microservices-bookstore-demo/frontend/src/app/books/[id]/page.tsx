@@ -9,7 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Book, Review } from '@/types';
 import { bookService, reviewService, recommendationService } from '@/lib/api';
-import { Star, ShoppingCart, Heart, Loader, Package, Truck } from 'lucide-react';
+import { Star, ShoppingCart, Heart, Loader, Package, Truck, MessageSquare } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { useCart } from '@/hooks/useCart';
 
 interface BookDetailPageProps {
   params: {
@@ -19,6 +21,9 @@ interface BookDetailPageProps {
 
 export default function BookDetailPage({ params }: BookDetailPageProps) {
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
+  const { addToCart, cart } = useCart();
+  
   const [book, setBook] = useState<Book | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [similarBooks, setSimilarBooks] = useState<Book[]>([]);
@@ -26,7 +31,6 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
-  const [addedToCart, setAddedToCart] = useState(false);
 
   useEffect(() => {
     if (params.id) {
@@ -41,7 +45,7 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
 
       // Fetch book details
       const bookResponse = await bookService.getBookById(params.id);
-      setBook(bookResponse.data);
+      setBook(bookResponse.data!);
 
       // Fetch reviews
       const reviewsResponse = await reviewService.getBookReviews(params.id);
@@ -61,23 +65,45 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
   const handleAddToCart = async () => {
     if (!book) return;
 
+    if (!isAuthenticated) {
+      alert('Please sign in to add items to your cart');
+      router.push('/auth/login');
+      return;
+    }
+
     try {
       setAddingToCart(true);
-      // This will use dummy data or call cart service based on env
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
-      setAddedToCart(true);
-      setTimeout(() => setAddedToCart(false), 2000);
+      
+      // Add to cart multiple times if quantity > 1
+      for (let i = 0; i < quantity; i++) {
+        await addToCart(book);
+      }
+      
       console.log(`Added ${quantity}x ${book.title} to cart`);
+      
+      // Optional: Show success message or redirect
+      // You could add a toast notification here
+      setTimeout(() => {
+        setAddingToCart(false);
+      }, 1000);
     } catch (err) {
       console.error('Failed to add to cart:', err);
-    } finally {
+      alert('Failed to add item to cart. Please try again.');
       setAddingToCart(false);
     }
   };
 
   const handleAddToWishlist = async () => {
     if (!book) return;
+    
+    if (!isAuthenticated) {
+      alert('Please sign in to add items to your wishlist');
+      router.push('/auth/login');
+      return;
+    }
+    
     console.log('Added to wishlist:', book.title);
+    // Implement wishlist logic here
   };
 
   const renderStars = (rating: number) => {
@@ -101,10 +127,10 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
     return (
       <div className="min-h-screen bg-background">
         <Header
-          cartCount={0}
+          cartCount={cart?.totalItems || 0}
           wishlistCount={0}
           onSearch={(q) => router.push(`/search?q=${q}`)}
-          isAuthenticated={false}
+          isAuthenticated={isAuthenticated}
         />
         <main className="container mx-auto px-4 py-12">
           <div className="flex justify-center items-center h-64">
@@ -119,10 +145,10 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
     return (
       <div className="min-h-screen bg-background">
         <Header
-          cartCount={0}
+          cartCount={cart?.totalItems || 0}
           wishlistCount={0}
           onSearch={(q) => router.push(`/search?q=${q}`)}
-          isAuthenticated={false}
+          isAuthenticated={isAuthenticated}
         />
         <main className="container mx-auto px-4 py-12">
           <Card>
@@ -141,10 +167,10 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
   return (
     <div className="min-h-screen bg-background">
       <Header
-        cartCount={0}
+        cartCount={cart?.totalItems || 0}
         wishlistCount={0}
         onSearch={(q) => router.push(`/search?q=${q}`)}
-        isAuthenticated={false}
+        isAuthenticated={isAuthenticated}
       />
 
       <main className="container mx-auto px-4 py-8">
@@ -243,8 +269,6 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
                       <Loader className="animate-spin mr-2" size={20} />
                       Adding...
                     </>
-                  ) : addedToCart ? (
-                    <>Added to Cart ✓</>
                   ) : (
                     <>
                       <ShoppingCart className="mr-2" size={20} />
@@ -315,12 +339,23 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
         </Card>
 
         {/* Reviews Section */}
-        {reviews.length > 0 && (
-          <Card className="mb-12">
-            <CardHeader>
+        <Card className="mb-12">
+          <CardHeader>
+            <div className="flex items-center justify-between">
               <CardTitle>Customer Reviews</CardTitle>
-            </CardHeader>
-            <CardContent>
+              {isAuthenticated && (
+                <Button
+                  variant="outline"
+                  onClick={() => router.push(`/books/${params.id}/review`)}
+                >
+                  <MessageSquare className="mr-2" size={18} />
+                  Write a Review
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {reviews.length > 0 ? (
               <div className="space-y-6">
                 {reviews.map((review) => (
                   <div key={review._id} className="border-b last:border-0 pb-6 last:pb-0">
@@ -344,9 +379,24 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
                   </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        )}
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground mb-4">
+                  No reviews yet. Be the first to review this book!
+                </p>
+                {isAuthenticated && (
+                  <Button
+                    variant="outline"
+                    onClick={() => router.push(`/books/${params.id}/review`)}
+                  >
+                    <MessageSquare className="mr-2" size={18} />
+                    Write the First Review
+                  </Button>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Similar Books */}
         {similarBooks.length > 0 && (
@@ -357,7 +407,14 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
                 <BookCard
                   key={similarBook._id}
                   book={similarBook}
-                  onAddToCart={() => console.log('Add to cart:', similarBook.title)}
+                  onAddToCart={async (book) => {
+                    if (!isAuthenticated) {
+                      alert('Please sign in to add items to your cart');
+                      router.push('/auth/login');
+                      return;
+                    }
+                    await addToCart(book);
+                  }}
                   onAddToWishlist={() => console.log('Add to wishlist:', similarBook.title)}
                 />
               ))}

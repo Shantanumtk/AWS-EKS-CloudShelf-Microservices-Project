@@ -359,6 +359,17 @@ export function transformBackendStock(backendStock: BackendStockCheckResponse): 
   };
 }
 
+export interface StockCheckRequest {
+  bookId: string;
+  quantity: number;
+}
+
+export interface StockCheckResponse {
+  skuCode: string;
+  inStock: boolean;
+  availableQuantity: number;
+}
+
 // --------------------------------------------
 // Search & Filter Types
 // --------------------------------------------

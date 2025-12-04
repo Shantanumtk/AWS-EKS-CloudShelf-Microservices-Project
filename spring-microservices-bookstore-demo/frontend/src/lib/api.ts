@@ -532,6 +532,95 @@ export const authorService = {
 };
 
 // ===========================================
+// Stock Check Service (REST)
+// ===========================================
+// Endpoint: /api/proxy/stock (proxied to stock-check-service)
+// Model: id BIGSERIAL, sku_code VARCHAR, quantity INTEGER
+// ===========================================
+
+export const stockService = {
+  /**
+   * Check stock availability for a specific book
+   * Endpoint: GET /api/proxy/stock/check?bookId={bookId}&quantity={quantity}
+   */
+  checkStock: async (bookId: string, quantity: number = 1): Promise<{ data: StockCheckResponse }> => {
+    if (USE_DUMMY_DATA) {
+      return {
+        data: {
+          skuCode: bookId,
+          inStock: true,
+          availableQuantity: 10,
+        },
+      };
+    }
+
+    try {
+      const response = await restFetch<{ inStock: boolean; availableQuantity: number }>(
+        `/proxy/stock/check?bookId=${bookId}&quantity=${quantity}`
+      );
+
+      return {
+        data: {
+          skuCode: bookId,
+          inStock: response.inStock,
+          availableQuantity: response.availableQuantity,
+        },
+      };
+    } catch (error) {
+      console.warn('[API] checkStock failed:', error);
+      // Fallback: assume in stock
+      return {
+        data: {
+          skuCode: bookId,
+          inStock: true,
+          availableQuantity: 10,
+        },
+      };
+    }
+  },
+
+  /**
+   * Bulk stock check for multiple SKUs (used by order service)
+   * Endpoint: GET /api/proxy/stockcheck?skuCode=sku1&skuCode=sku2
+   */
+  checkBulkStock: async (skuCodes: string[]): Promise<{ data: StockCheckResponse[] }> => {
+    if (USE_DUMMY_DATA) {
+      return {
+        data: skuCodes.map(sku => ({
+          skuCode: sku,
+          inStock: true,
+          availableQuantity: 10,
+        })),
+      };
+    }
+
+    try {
+      const params = skuCodes.map(sku => `skuCode=${sku}`).join('&');
+      const response = await restFetch<Array<{ skuCode: string; inStock: boolean }>>(
+        `/proxy/stockcheck?${params}`
+      );
+
+      return {
+        data: response.map(item => ({
+          skuCode: item.skuCode,
+          inStock: item.inStock,
+          availableQuantity: item.inStock ? 10 : 0, // Backend doesn't return quantity in bulk check
+        })),
+      };
+    } catch (error) {
+      console.warn('[API] checkBulkStock failed:', error);
+      return {
+        data: skuCodes.map(sku => ({
+          skuCode: sku,
+          inStock: true,
+          availableQuantity: 10,
+        })),
+      };
+    }
+  },
+};
+
+// ===========================================
 // Order Service (REST)
 // ===========================================
 
@@ -900,31 +989,49 @@ export const reviewService = {
    */
   createReview: async (
     bookId: string,
-    userId: string, // This receives the EMAIL (String)
+    userId: string,
     rating: number,
     text: string
   ) => {
-    if (USE_DUMMY_DATA) return { data: { success: true } };
+    if (USE_DUMMY_DATA) {
+      return { 
+        data: { 
+          success: true,
+          reviewId: `review-${Date.now()}`,
+        } 
+      };
+    }
 
     try {
-      // Cart Service uses String (Email) -> OK
-      // Reviews Service uses Long (Number) -> Must Hash
       const payload = {
-        book_id: stringToNumberId(bookId), // MongoDB ID -> Number
-        user_id: stringToNumberId(userId), // Email -> Number
+        bookId: stringToNumberId(bookId),
+        userId: stringToNumberId(userId),
         rating,
         comment: text,
       };
 
-      await restFetch('/proxy/reviews', {
+      logDebug('Creating review with payload:', payload);
+
+      const response = await restFetch<BackendReviewResponse>('/proxy/reviews', {
         method: 'POST',
         body: JSON.stringify(payload),
       });
-      return { data: { success: true } };
+
+      return { 
+        data: { 
+          success: true,
+          reviewId: response.id.toString(),
+        } 
+      };
     } catch (error) {
       console.error('[API] createReview failed:', error);
-      return { data: { success: false } };
-    } 
+      return { 
+        data: { 
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to create review',
+        } 
+      };
+    }
   },
 
   /**
