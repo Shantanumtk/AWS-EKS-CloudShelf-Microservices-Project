@@ -7,7 +7,7 @@ on:
     branches:
       - main
       - develop
-      - feature/**
+      - cart-service-frontend-merge
   workflow_dispatch:
     inputs:
       environment:
