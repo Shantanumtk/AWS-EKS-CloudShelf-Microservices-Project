@@ -1,110 +1,101 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CartItem } from '@/types';
-import { cartService, pricingService } from '@/lib/api';
+import { pricingService } from '@/lib/api';
 import { Loader, Trash2, ShoppingBag, ArrowRight } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { useCart } from '@/hooks/useCart';
+import { useState } from 'react';
 
 export default function CartPage() {
   const router = useRouter();
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [updating, setUpdating] = useState<string | null>(null);
+  const { isAuthenticated } = useAuth();
+  const { cart, removeFromCart, updateQuantity, checkout, loading } = useCart();
+  
+  const [updatingItemId, setUpdatingItemId] = useState<string | null>(null);
   const [couponCode, setCouponCode] = useState('');
   const [couponApplied, setCouponApplied] = useState(false);
   const [discount, setDiscount] = useState(0);
+  const [checkingOut, setCheckingOut] = useState(false);
 
   // Calculate totals
-  const subtotal = cartItems.reduce((sum, item) => sum + item.subtotal, 0);
+  const subtotal = cart?.totalPrice || 0;
   const shipping = subtotal > 50 ? 0 : 5.99; // Free shipping over $50
   const tax = subtotal * 0.08; // 8% tax
   const total = subtotal - discount + shipping + tax;
 
-  useEffect(() => {
-    fetchCart();
-  }, []);
-
-  const fetchCart = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // This will use dummy data or real cart service based on env
-      const response = await cartService.getCart('user-123');
-      setCartItems(response.data.items);
-    } catch (err) {
-      setError('Failed to load cart');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateQuantity = async (itemId: string, newQuantity: number) => {
+  const handleUpdateQuantity = async (bookId: string, newQuantity: number) => {
     if (newQuantity < 1) return;
+    
+    const item = cart?.items.find((i) => i.bookId === bookId);
+    if (!item) return;
 
     try {
-      setUpdating(itemId);
-      const item = cartItems.find((i) => i.bookId === itemId);
-      if (!item) return;
-
-      // Update cart via API
-      await cartService.updateCartItem('user-123', itemId, newQuantity);
-
-      // Update local state
-      setCartItems((items) =>
-        items.map((i) =>
-          i.bookId === itemId
-            ? {
-                ...i,
-                quantity: newQuantity,
-                subtotal: i.price * newQuantity,
-              }
-            : i
-        )
-      );
+      setUpdatingItemId(bookId);
+      await updateQuantity(item.book, newQuantity);
     } catch (err) {
       console.error('Failed to update quantity:', err);
+      alert('Failed to update quantity. Please try again.');
     } finally {
-      setUpdating(null);
+      setUpdatingItemId(null);
     }
   };
 
-  const removeItem = async (itemId: string) => {
+  const handleRemoveItem = async (bookId: string) => {
     try {
-      setUpdating(itemId);
-      await cartService.removeCartItem('user-123', itemId);
-      setCartItems((items) => items.filter((i) => i.bookId !== itemId));
+      setUpdatingItemId(bookId);
+      await removeFromCart(bookId);
     } catch (err) {
       console.error('Failed to remove item:', err);
+      alert('Failed to remove item. Please try again.');
     } finally {
-      setUpdating(null);
+      setUpdatingItemId(null);
     }
   };
 
   const applyCoupon = async () => {
+    if (!isAuthenticated) return;
+    
     try {
-      const response = await pricingService.validateCoupon(couponCode, 'user-123');
+      const response = await pricingService.validateCoupon(couponCode, 'user-temp');
       if (response.data.valid) {
         setDiscount(response.data.discountAmount);
         setCouponApplied(true);
+      } else {
+        alert('Invalid coupon code');
       }
     } catch (err) {
       console.error('Invalid coupon:', err);
+      alert('Failed to apply coupon');
     }
   };
 
-  const proceedToCheckout = () => {
-    if (cartItems.length === 0) return;
-    router.push('/checkout');
+  const proceedToCheckout = async () => {
+    if (!cart || cart.items.length === 0) return;
+    
+    try {
+      setCheckingOut(true);
+      const result = await checkout();
+      
+      if (result.success) {
+        alert(`Order placed successfully! Order ID: ${result.orderId}`);
+        router.push(`/orders/${result.orderId}`);
+      } else {
+        alert('Checkout failed. Please try again.');
+      }
+    } catch (err) {
+      console.error('Checkout failed:', err);
+      alert('Checkout failed. Please try again.');
+    } finally {
+      setCheckingOut(false);
+    }
   };
 
-  if (loading) {
+  // Not logged in state
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-background">
         <Header
@@ -112,6 +103,34 @@ export default function CartPage() {
           wishlistCount={0}
           onSearch={(q) => router.push(`/search?q=${q}`)}
           isAuthenticated={false}
+        />
+        <main className="container mx-auto px-4 py-12">
+          <Card>
+            <CardContent className="p-12 text-center">
+              <ShoppingBag className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+              <h2 className="text-2xl font-bold mb-2">Please Sign In</h2>
+              <p className="text-muted-foreground mb-6">
+                You need to be logged in to view your cart
+              </p>
+              <Button onClick={() => router.push('/auth/login')}>
+                Sign In
+              </Button>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header
+          cartCount={0}
+          wishlistCount={0}
+          onSearch={(q) => router.push(`/search?q=${q}`)}
+          isAuthenticated={isAuthenticated}
         />
         <main className="container mx-auto px-4 py-12">
           <div className="flex justify-center items-center h-64">
@@ -122,40 +141,19 @@ export default function CartPage() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header
-          cartCount={cartItems.length}
-          wishlistCount={0}
-          onSearch={(q) => router.push(`/search?q=${q}`)}
-          isAuthenticated={false}
-        />
-        <main className="container mx-auto px-4 py-12">
-          <Card>
-            <CardContent className="p-12 text-center">
-              <p className="text-destructive mb-4">{error}</p>
-              <Button onClick={fetchCart}>Try Again</Button>
-            </CardContent>
-          </Card>
-        </main>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <Header
-        cartCount={cartItems.length}
+        cartCount={cart?.totalItems || 0}
         wishlistCount={0}
         onSearch={(q) => router.push(`/search?q=${q}`)}
-        isAuthenticated={false}
+        isAuthenticated={isAuthenticated}
       />
 
       <main className="container mx-auto px-4 py-12">
         <h1 className="text-4xl font-bold mb-8">Shopping Cart</h1>
 
-        {cartItems.length === 0 ? (
+        {!cart || cart.items.length === 0 ? (
           <Card>
             <CardContent className="p-12 text-center">
               <ShoppingBag className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
@@ -172,7 +170,7 @@ export default function CartPage() {
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Cart Items */}
             <div className="lg:col-span-2 space-y-4">
-              {cartItems.map((item) => (
+              {cart.items.map((item) => (
                 <Card key={item.bookId}>
                   <CardContent className="p-6">
                     <div className="flex gap-4">
@@ -208,9 +206,9 @@ export default function CartPage() {
                           <div className="flex items-center border rounded-lg">
                             <button
                               onClick={() =>
-                                updateQuantity(item.bookId, item.quantity - 1)
+                                handleUpdateQuantity(item.bookId, item.quantity - 1)
                               }
-                              disabled={updating === item.bookId}
+                              disabled={updatingItemId === item.bookId}
                               className="px-3 py-1 hover:bg-muted disabled:opacity-50"
                             >
                               -
@@ -220,10 +218,10 @@ export default function CartPage() {
                             </span>
                             <button
                               onClick={() =>
-                                updateQuantity(item.bookId, item.quantity + 1)
+                                handleUpdateQuantity(item.bookId, item.quantity + 1)
                               }
                               disabled={
-                                updating === item.bookId ||
+                                updatingItemId === item.bookId ||
                                 item.quantity >= item.book.stockCount
                               }
                               className="px-3 py-1 hover:bg-muted disabled:opacity-50"
@@ -235,8 +233,8 @@ export default function CartPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => removeItem(item.bookId)}
-                            disabled={updating === item.bookId}
+                            onClick={() => handleRemoveItem(item.bookId)}
+                            disabled={updatingItemId === item.bookId}
                             className="text-destructive hover:text-destructive"
                           >
                             <Trash2 className="w-4 h-4 mr-1" />
@@ -305,7 +303,7 @@ export default function CartPage() {
                   <div className="border-t pt-4 space-y-2">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">
-                        Subtotal ({cartItems.length} items)
+                        Subtotal ({cart.totalItems} items)
                       </span>
                       <span className="font-semibold">
                         ${subtotal.toFixed(2)}
@@ -336,7 +334,7 @@ export default function CartPage() {
                       <span className="font-semibold">${tax.toFixed(2)}</span>
                     </div>
 
-                    {shipping > 0 && (
+                    {shipping > 0 && subtotal < 50 && (
                       <p className="text-xs text-muted-foreground">
                         Add ${(50 - subtotal).toFixed(2)} more for free shipping
                       </p>
@@ -353,9 +351,19 @@ export default function CartPage() {
                       className="w-full"
                       size="lg"
                       onClick={proceedToCheckout}
+                      disabled={checkingOut}
                     >
-                      Proceed to Checkout
-                      <ArrowRight className="ml-2" size={20} />
+                      {checkingOut ? (
+                        <>
+                          <Loader className="animate-spin mr-2" size={20} />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          Proceed to Checkout
+                          <ArrowRight className="ml-2" size={20} />
+                        </>
+                      )}
                     </Button>
 
                     <Button

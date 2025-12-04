@@ -483,6 +483,29 @@ export const API_ENDPOINTS = {
 // --------------------------------------------
 // Type Guards
 // --------------------------------------------
+/**
+ * BOOK SERVICE (MongoDB)
+ * Schema: id STRING PK, name STRING, description STRING, price DOUBLE
+ */
+export interface BackendBookResponse {
+  id: string;            // MongoDB ObjectId as string
+  name: string;          // Book title (backend calls it "name")
+  description: string;
+  price: number;
+}
+
+/**
+ * REVIEW SERVICE (PostgreSQL)
+ * Schema: id BIGSERIAL PK, book_id BIGINT, user_id BIGINT, rating INT, comment TEXT, created_at TIMESTAMP
+ */
+export interface BackendReviewResponse {
+  id: number;            // PostgreSQL BIGSERIAL
+  book_id: number;       // BIGINT (⚠️ mismatch with MongoDB string IDs)
+  user_id: number;       // BIGINT
+  rating: number;        // INT (1-5)
+  comment: string;       // TEXT
+  created_at: string;    // TIMESTAMP as ISO string
+}
 
 export function isBackendBookResponse(obj: unknown): obj is BackendBookResponse {
   return (

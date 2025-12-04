@@ -19,6 +19,7 @@ import {
   BackendOrderResponse,
   BackendReviewResponse,
   BackendUserProfileResponse,
+  CartItem,
   transformBackendBook,
   transformBackendAuthor,
   transformBackendReview,
@@ -364,7 +365,7 @@ export const bookService = {
         results = results.filter(book => book.price >= min && book.price <= max);
       }
       if (filters?.rating) {
-        results = results.filter(book => book.rating >= filters.rating);
+        results = results.filter(book => book.rating >= filters.rating!);
       }
       if (filters?.inStockOnly) {
         results = results.filter(book => book.inStock);
@@ -583,77 +584,217 @@ export const orderService = {
 // Cart Service (Local/Dummy)
 // ===========================================
 
+interface BackendCartItem {
+  bookId: string;
+  title: string;
+  quantity: number;
+  price: number;
+}
+
 export const cartService = {
   getCart: async (userId: string) => {
     if (USE_DUMMY_DATA) {
       const books = getDummyBooks(1, 3).data;
+      // ... keep dummy logic ...
+      return { data: { userId, items: [], totalItems: 0, totalPrice: 0 } as any };
+    }
+
+    try {
+      // 1. Fetch the raw data (BackendCartItem format)
+      const response = await restFetch<{ 
+        items: BackendCartItem[]; 
+        totalPrice: number 
+      }>(`/proxy/cart/${userId}`);
+
+      // 2. Map it to the Frontend 'CartItem' format (which needs a 'book' object)
+      const items: CartItem[] = (response.items || []).map((item) => ({
+        bookId: item.bookId,
+        // We construct a partial "Book" object so the UI can render the card
+        book: {
+          _id: item.bookId,
+          title: item.title,
+          description: '', // Not returned by Cart Service
+          price: item.price,
+          author: 'Unknown', // Not returned by Cart Service
+          category: 'General',
+          coverImage: `https://via.placeholder.com/200x300?text=${encodeURIComponent(item.title.slice(0, 15))}`,
+          rating: 0,
+          reviewCount: 0,
+          inStock: true,
+          stockCount: 10,
+        },
+        quantity: item.quantity,
+        price: item.price,
+        subtotal: item.price * item.quantity,
+      }));
+
       return {
         data: {
           userId,
-          items: books.map((book, idx) => ({
-            bookId: book._id,
-            book,
-            quantity: idx + 1,
-            price: book.price,
-            subtotal: book.price * (idx + 1),
-          })),
-          totalItems: books.length,
-          totalPrice: books.reduce((sum, book, idx) => sum + book.price * (idx + 1), 0),
+          items,
+          totalItems: items.reduce((sum, item) => sum + item.quantity, 0),
+          totalPrice: response.totalPrice || 0,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         },
       };
+    } catch (error) {
+      console.warn('[API] getCart failed:', error);
+      return { data: { userId, items: [], totalItems: 0, totalPrice: 0, createdAt: '', updatedAt: '' } };
     }
-    // Cart service not implemented in backend
-    return {
-      data: {
-        userId,
-        items: [],
-        totalItems: 0,
-        totalPrice: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    };
   },
 
-  addToCart: async (_userId: string, _bookId: string, _qty: number) => {
-    return { data: { success: true } };
+  /**
+   * Add item to cart
+   * Endpoint: POST /api/cart/{userId}/add
+   * Body: { bookId, title, quantity, price }
+   */
+  addToCart: async (
+    userId: string,
+    bookId: string,
+    quantity: number,
+    title: string,
+    price: number
+  ): Promise<{ data: { success: boolean } }> => {
+    if (USE_DUMMY_DATA) {
+      return { data: { success: true } };
+    }
+
+    try {
+      await restFetch(`/proxy/cart/${userId}/add`, {
+        method: 'POST',
+        body: JSON.stringify({
+          bookId,
+          title,
+          quantity,
+          price,
+        }),
+      });
+      return { data: { success: true } };
+    } catch (error) {
+      console.error('[CartService] addToCart failed:', error);
+      return { data: { success: false } };
+    }
   },
 
-  updateCartItem: async (_userId: string, _bookId: string, _qty: number) => {
-    return { data: { success: true } };
+  /**
+   * Update cart item quantity
+   */
+  updateCartItem: async (
+    userId: string,
+    bookId: string,
+    quantity: number,
+    title: string,
+    price: number
+  ): Promise<{ data: { success: boolean } }> => {
+    if (USE_DUMMY_DATA) {
+      return { data: { success: true } };
+    }
+
+    try {
+      // Remove first
+      await cartService.removeCartItem(userId, bookId);
+      // Re-add with new quantity
+      if (quantity > 0) {
+        await cartService.addToCart(userId, bookId, quantity, title, price);
+      }
+      return { data: { success: true } };
+    } catch (error) {
+      console.error('[CartService] updateCartItem failed:', error);
+      return { data: { success: false } };
+    }
   },
 
-  removeCartItem: async (_userId: string, _bookId: string) => {
-    return { data: { success: true } };
+  /**
+   * Remove item from cart
+   * Endpoint: DELETE /api/cart/{userId}/remove/{bookId}
+   */
+  removeCartItem: async (
+    userId: string,
+    bookId: string
+  ): Promise<{ data: { success: boolean } }> => {
+    if (USE_DUMMY_DATA) {
+      return { data: { success: true } };
+    }
+
+    try {
+      await restFetch(`/proxy/cart/${userId}/remove/${bookId}`, {
+        method: 'DELETE',
+      });
+      return { data: { success: true } };
+    } catch (error) {
+      console.error('[CartService] removeCartItem failed:', error);
+      return { data: { success: false } };
+    }
   },
 
   removeFromCart: async (userId: string, bookId: string) => {
     return cartService.removeCartItem(userId, bookId);
   },
 
-  checkout: async (_userId: string) => {
-    return { data: { orderId: `ORD-${Date.now()}` } };
+  /**
+   * Clear entire cart
+   * Endpoint: DELETE /api/cart/{userId}/clear
+   */
+  clearCart: async (userId: string): Promise<{ data: { success: boolean } }> => {
+    if (USE_DUMMY_DATA) {
+      return { data: { success: true } };
+    }
+
+    try {
+      await restFetch(`/proxy/cart/${userId}/clear`, {
+        method: 'DELETE',
+      });
+      return { data: { success: true } };
+    } catch (error) {
+      console.error('[CartService] clearCart failed:', error);
+      return { data: { success: false } };
+    }
+  },
+
+  /**
+   * Checkout cart
+   * Endpoint: POST /api/cart/{userId}/checkout
+   */
+  checkout: async (userId: string): Promise<{
+    data: { success: boolean; orderId?: string; message?: string };
+  }> => {
+    if (USE_DUMMY_DATA) {
+      return { data: { success: true, orderId: `ORD-${Date.now()}`, message: 'Order placed!' } };
+    }
+
+    try {
+      const response = await restFetch<string>(`/proxy/cart/${userId}/checkout`, {
+        method: 'POST',
+      });
+      
+      // Backend returns string like "Order placed successfully! Order Number: xyz"
+      const message = typeof response === 'string' ? response : 'Order placed successfully!';
+      const orderMatch = message.match(/Order Number:\s*(\S+)/i);
+      
+      return {
+        data: {
+          success: true,
+          orderId: orderMatch ? orderMatch[1] : `ORD-${Date.now()}`,
+          message,
+        },
+      };
+    } catch (error) {
+      console.error('[CartService] checkout failed:', error);
+      return {
+        data: {
+          success: false,
+          message: error instanceof Error ? error.message : 'Checkout failed',
+        },
+      };
+    }
   },
 };
-
-// ===========================================
-// Review Service (Dummy)
-// ===========================================
 
 // ===========================================
 // Review Service (REST - Hisham's reviews-service)
 // ===========================================
 // Endpoint: /api/proxy/reviews (proxied to reviews-service)
-// 
-// Backend Schema (PostgreSQL):
-// - id: BIGSERIAL PK
-// - book_id: BIGINT (⚠️ Should be string to match MongoDB Book._id)
-// - user_id: BIGINT
-// - rating: INT (1-5)
-// - comment: TEXT
-// - created_at: TIMESTAMP
 // ===========================================
 
 export const reviewService = {
@@ -759,43 +900,31 @@ export const reviewService = {
    */
   createReview: async (
     bookId: string,
-    userId: string,
+    userId: string, // This receives the EMAIL (String)
     rating: number,
     text: string
-  ): Promise<{ data: { success: boolean; reviewId?: string } }> => {
-    if (USE_DUMMY_DATA) {
-      return { data: { success: true, reviewId: `review-${Date.now()}` } };
-    }
+  ) => {
+    if (USE_DUMMY_DATA) return { data: { success: true } };
 
     try {
-      // FIX: Convert String IDs to Numbers so Postgres doesn't crash
-      const reviewPayload = {
-        book_id: stringToNumberId(bookId),
-        user_id: stringToNumberId(userId),
+      // Cart Service uses String (Email) -> OK
+      // Reviews Service uses Long (Number) -> Must Hash
+      const payload = {
+        book_id: stringToNumberId(bookId), // MongoDB ID -> Number
+        user_id: stringToNumberId(userId), // Email -> Number
         rating,
         comment: text,
       };
 
-      console.log('[API] Creating review with payload:', reviewPayload);
-
-      const response = await restFetch<BackendReviewResponse>(
-        '/proxy/reviews',
-        {
-          method: 'POST',
-          body: JSON.stringify(reviewPayload),
-        }
-      );
-
-      return {
-        data: {
-          success: true,
-          reviewId: response.id.toString(),
-        },
-      };
+      await restFetch('/proxy/reviews', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      return { data: { success: true } };
     } catch (error) {
       console.error('[API] createReview failed:', error);
       return { data: { success: false } };
-    }
+    } 
   },
 
   /**
@@ -1106,7 +1235,7 @@ export const userService = {
 };
 
 // ===========================================
-// Pricing Service (Dummy)
+// Pricing Service (Deprecated, handled by bookservice)
 // ===========================================
 
 export const pricingService = {

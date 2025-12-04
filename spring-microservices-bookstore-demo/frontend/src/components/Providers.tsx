@@ -4,7 +4,6 @@ import { Amplify } from 'aws-amplify';
 import { AuthProvider } from '@/contexts/AuthContext';
 
 // Initialize the Connection to AWS Cognito
-// This must run before any other Auth code
 Amplify.configure({
   Auth: {
     Cognito: {

@@ -6,9 +6,10 @@ import { Header } from '@/components/Header';
 import { BookCard } from '@/components/BookCard';
 import { Button } from '@/components/ui/button';
 import { Book } from '@/types';
-import { bookService, cartService, userService } from '@/lib/api';
+import { bookService, userService } from '@/lib/api';
 import { Loader, ChevronLeft, ChevronRight } from 'lucide-react';
-
+import { useAuth } from '@/hooks/useAuth';
+import { useCart } from '@/hooks/useCart';
 export default function BrowsePage() {
   const router = useRouter();
   const [books, setBooks] = useState<Book[]>([]);
@@ -17,6 +18,9 @@ export default function BrowsePage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [hasMore, setHasMore] = useState(false);
+  
+  const { isAuthenticated, userEmail } = useAuth();
+  const { addToCart, cart } = useCart();
   
   const ITEMS_PER_PAGE = 12;
 
@@ -42,17 +46,31 @@ export default function BrowsePage() {
   };
 
   const handleAddToCart = async (book: Book) => {
+    if (!isAuthenticated) {
+      // Prompt user to login
+      alert('Please sign in to add items to your cart');
+      router.push('/auth/login');
+      return;
+    }
+
     try {
-      await cartService.addToCart('user-123', book._id, 1);
+      await addToCart(book);
       console.log(`Added ${book.title} to cart`);
     } catch (err) {
       console.error('Failed to add to cart:', err);
+      alert('Failed to add item to cart. Please try again.');
     }
   };
 
   const handleAddToWishlist = async (book: Book) => {
+    if (!isAuthenticated) {
+      alert('Please sign in to add items to your wishlist');
+      router.push('/auth/login');
+      return;
+    }
+
     try {
-      await userService.addToWishlist('user-123', book._id);
+      await userService.addToWishlist(userEmail!, book._id);
       console.log(`Added ${book.title} to wishlist`);
     } catch (err) {
       console.error('Failed to add to wishlist:', err);
@@ -77,10 +95,10 @@ export default function BrowsePage() {
     return (
       <div className="min-h-screen bg-background">
         <Header
-          cartCount={0}
+          cartCount={cart?.totalItems || 0}
           wishlistCount={0}
           onSearch={(q) => router.push(`/search?q=${q}`)}
-          isAuthenticated={false}
+          isAuthenticated={isAuthenticated}
         />
         <main className="container mx-auto px-4 py-12">
           <div className="flex justify-center items-center h-64">
@@ -95,10 +113,10 @@ export default function BrowsePage() {
     return (
       <div className="min-h-screen bg-background">
         <Header
-          cartCount={0}
+          cartCount={cart?.totalItems || 0}
           wishlistCount={0}
           onSearch={(q) => router.push(`/search?q=${q}`)}
-          isAuthenticated={false}
+          isAuthenticated={isAuthenticated}
         />
         <main className="container mx-auto px-4 py-12">
           <div className="text-center">
@@ -113,10 +131,10 @@ export default function BrowsePage() {
   return (
     <div className="min-h-screen bg-background">
       <Header
-        cartCount={0}
+        cartCount={cart?.totalItems || 0}
         wishlistCount={0}
         onSearch={(q) => router.push(`/search?q=${q}`)}
-        isAuthenticated={false}
+        isAuthenticated={isAuthenticated}
       />
 
       <main className="container mx-auto px-4 py-12">
