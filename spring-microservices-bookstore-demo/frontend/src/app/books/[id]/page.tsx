@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Book, Review } from '@/types';
-import { bookService, reviewService, recommendationService } from '@/lib/api';
-import { Star, ShoppingCart, Heart, Loader, Package, Truck, MessageSquare } from 'lucide-react';
+import { bookService, reviewService, recommendationService, stockService } from '@/lib/api';
+import { Star, ShoppingCart, Heart, Loader, Package, Truck, MessageSquare, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 
@@ -31,10 +31,18 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
+  
+  // Stock state
+  const [stockInfo, setStockInfo] = useState<{
+    inStock: boolean;
+    availableQuantity: number;
+  } | null>(null);
+  const [checkingStock, setCheckingStock] = useState(false);
 
   useEffect(() => {
     if (params.id) {
       fetchBookDetails();
+      checkBookStock();
     }
   }, [params.id]);
 
@@ -49,7 +57,7 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
 
       // Fetch reviews
       const reviewsResponse = await reviewService.getBookReviews(params.id);
-      setReviews(reviewsResponse.data.slice(0, 5)); // Show top 5 reviews
+      setReviews(reviewsResponse.data.slice(0, 5));
 
       // Fetch similar/recommended books
       const recoResponse = await recommendationService.getBookRecommendations(params.id);
@@ -62,12 +70,43 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
     }
   };
 
+  const checkBookStock = async () => {
+    try {
+      setCheckingStock(true);
+      const response = await stockService.checkStock(params.id, 1);
+      setStockInfo({
+        inStock: response.data.inStock,
+        availableQuantity: response.data.availableQuantity,
+      });
+    } catch (err) {
+      console.error('Failed to check stock:', err);
+      // Fallback to assuming in stock
+      setStockInfo({
+        inStock: true,
+        availableQuantity: 10,
+      });
+    } finally {
+      setCheckingStock(false);
+    }
+  };
+
   const handleAddToCart = async () => {
     if (!book) return;
 
     if (!isAuthenticated) {
       alert('Please sign in to add items to your cart');
       router.push('/auth/login');
+      return;
+    }
+
+    // Check stock before adding
+    if (stockInfo && !stockInfo.inStock) {
+      alert('This item is currently out of stock');
+      return;
+    }
+
+    if (stockInfo && quantity > stockInfo.availableQuantity) {
+      alert(`Only ${stockInfo.availableQuantity} items available in stock`);
       return;
     }
 
@@ -81,8 +120,6 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
       
       console.log(`Added ${quantity}x ${book.title} to cart`);
       
-      // Optional: Show success message or redirect
-      // You could add a toast notification here
       setTimeout(() => {
         setAddingToCart(false);
       }, 1000);
@@ -103,7 +140,6 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
     }
     
     console.log('Added to wishlist:', book.title);
-    // Implement wishlist logic here
   };
 
   const renderStars = (rating: number) => {
@@ -122,6 +158,10 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
       </div>
     );
   };
+
+  // Calculate actual stock count (use API data if available)
+  const actualStockCount = stockInfo ? stockInfo.availableQuantity : book?.stockCount || 0;
+  const isInStock = stockInfo ? stockInfo.inStock : book?.inStock || false;
 
   if (loading) {
     return (
@@ -217,16 +257,23 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
 
               {/* Stock Status */}
               <div className="flex items-center gap-2 mb-6">
-                {book.inStock ? (
+                {checkingStock ? (
+                  <>
+                    <Loader className="w-5 h-5 animate-spin" />
+                    <span className="text-muted-foreground">
+                      Checking stock...
+                    </span>
+                  </>
+                ) : isInStock ? (
                   <>
                     <Package className="w-5 h-5 text-green-600" />
                     <span className="text-green-600 font-semibold">
-                      In Stock ({book.stockCount} available)
+                      In Stock ({actualStockCount} available)
                     </span>
                   </>
                 ) : (
                   <>
-                    <Package className="w-5 h-5 text-destructive" />
+                    <AlertTriangle className="w-5 h-5 text-destructive" />
                     <span className="text-destructive font-semibold">
                       Out of Stock
                     </span>
@@ -234,8 +281,18 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
                 )}
               </div>
 
+              {/* Low Stock Warning */}
+              {isInStock && actualStockCount < 5 && actualStockCount > 0 && (
+                <div className="p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg mb-6">
+                  <p className="text-sm text-orange-600 font-semibold flex items-center gap-2">
+                    <AlertTriangle size={16} />
+                    Only {actualStockCount} left in stock - order soon!
+                  </p>
+                </div>
+              )}
+
               {/* Quantity Selector */}
-              {book.inStock && (
+              {isInStock && (
                 <div className="flex items-center gap-4 mb-6">
                   <label className="font-semibold">Quantity:</label>
                   <div className="flex items-center border rounded-lg">
@@ -247,7 +304,7 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
                     </button>
                     <span className="px-6 py-2 border-x">{quantity}</span>
                     <button
-                      onClick={() => setQuantity(Math.min(book.stockCount, quantity + 1))}
+                      onClick={() => setQuantity(Math.min(actualStockCount, quantity + 1))}
                       className="px-4 py-2 hover:bg-muted"
                     >
                       +
@@ -262,7 +319,7 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
                   size="lg"
                   className="flex-1"
                   onClick={handleAddToCart}
-                  disabled={!book.inStock || addingToCart}
+                  disabled={!isInStock || addingToCart || checkingStock}
                 >
                   {addingToCart ? (
                     <>
