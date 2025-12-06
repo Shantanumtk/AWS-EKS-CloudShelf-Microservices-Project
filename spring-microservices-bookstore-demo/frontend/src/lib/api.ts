@@ -36,6 +36,10 @@ import {
   User,
   SearchFilters,
   PaginatedResponse,
+  BackendStockCheckResponse,
+  BackendCartStockCheckResponse,
+  StockInfo,
+  transformBackendStockCheck,
 } from '@/types';
 
 import {
@@ -62,8 +66,7 @@ const SERVER_HOST = process.env.MINIKUBE_API_HOST || 'http://127.0.0.1:40029';
 // 2. Determine the GraphQL Endpoint
 // - Server: Talk directly to Minikube (bypassing the Proxy to avoid "Relative URL" errors)
 // - Browser: Talk to the Next.js Proxy (to avoid CORS errors)
-const GRAPHQL_ENDPOINT = process.env.NEXT_PUBLIC_API_GATEWAY_URL || '/api/graphql';
-
+const GRAPHQL_ENDPOINT = 'http://localhost:8080/api/graphql';
 // 3. Determine the REST Base URL
 // Same logic as above
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
@@ -534,91 +537,83 @@ export const authorService = {
 // ===========================================
 // Stock Check Service (REST)
 // ===========================================
-// Endpoint: /api/proxy/stock (proxied to stock-check-service)
-// Model: id BIGSERIAL, sku_code VARCHAR, quantity INTEGER
-// ===========================================
 
 export const stockService = {
   /**
-   * Check stock availability for a specific book
-   * Endpoint: GET /api/proxy/stock/check?bookId={bookId}&quantity={quantity}
+   * Check stock for order placement (multiple items)
+   * Endpoint: GET /api/proxy/stockcheck?skuCode=item1,item2
+   * Used by: order-service
    */
-  checkStock: async (bookId: string, quantity: number = 1): Promise<{ data: StockCheckResponse }> => {
+  checkStock: async (skuCodes: string[]): Promise<{ data: BackendStockCheckResponse[] }> => {
+    if (USE_DUMMY_DATA) {
+      return {
+        data: skuCodes.map(code => ({
+          skuCode: code,
+          isInStock: code !== 'mythical_man_month',
+        })),
+      };
+    }
+
+    try {
+      const params = new URLSearchParams();
+      skuCodes.forEach(code => params.append('skuCode', code));
+      
+      const response = await restFetch<BackendStockCheckResponse[]>(
+        `/proxy/stockcheck?${params.toString()}`
+      );
+      return { data: response };
+    } catch (error) {
+      console.error('[API] checkStock failed:', error);
+      return { data: [] };
+    }
+  },
+
+  /**
+   * Check stock for cart (single item with quantity)
+   * Endpoint: GET /api/proxy/stock/check?bookId=xxx&quantity=1
+   * Used by: cart-service, product pages
+   */
+  checkStockForCart: async (
+    bookId: string,
+    quantity: number = 1
+  ): Promise<{ data: StockInfo }> => {
     if (USE_DUMMY_DATA) {
       return {
         data: {
-          skuCode: bookId,
-          inStock: true,
-          availableQuantity: 10,
+          bookId,
+          inStock: bookId !== 'mythical_man_month',
+          availableQuantity: bookId === 'mythical_man_month' ? 0 : 100,
         },
       };
     }
 
     try {
-      const response = await restFetch<{ inStock: boolean; availableQuantity: number }>(
-        `/proxy/stock/check?bookId=${bookId}&quantity=${quantity}`
+      const response = await restFetch<BackendCartStockCheckResponse>(
+        `/proxy/stock/check?bookId=${encodeURIComponent(bookId)}&quantity=${quantity}`
       );
-
-      return {
-        data: {
-          skuCode: bookId,
-          inStock: response.inStock,
-          availableQuantity: response.availableQuantity,
-        },
-      };
+      return { data: transformBackendStockCheck(response) };
     } catch (error) {
-      console.warn('[API] checkStock failed:', error);
-      // Fallback: assume in stock
+      console.error('[API] checkStockForCart failed:', error);
       return {
         data: {
-          skuCode: bookId,
-          inStock: true,
-          availableQuantity: 10,
+          bookId,
+          inStock: false,
+          availableQuantity: 0,
         },
       };
     }
   },
 
   /**
-   * Bulk stock check for multiple SKUs (used by order service)
-   * Endpoint: GET /api/proxy/stockcheck?skuCode=sku1&skuCode=sku2
+   * Get available quantity for a book
+   * Helper method that wraps checkStockForCart
    */
-  checkBulkStock: async (skuCodes: string[]): Promise<{ data: StockCheckResponse[] }> => {
-    if (USE_DUMMY_DATA) {
-      return {
-        data: skuCodes.map(sku => ({
-          skuCode: sku,
-          inStock: true,
-          availableQuantity: 10,
-        })),
-      };
-    }
-
-    try {
-      const params = skuCodes.map(sku => `skuCode=${sku}`).join('&');
-      const response = await restFetch<Array<{ skuCode: string; inStock: boolean }>>(
-        `/proxy/stockcheck?${params}`
-      );
-
-      return {
-        data: response.map(item => ({
-          skuCode: item.skuCode,
-          inStock: item.inStock,
-          availableQuantity: item.inStock ? 10 : 0, // Backend doesn't return quantity in bulk check
-        })),
-      };
-    } catch (error) {
-      console.warn('[API] checkBulkStock failed:', error);
-      return {
-        data: skuCodes.map(sku => ({
-          skuCode: sku,
-          inStock: true,
-          availableQuantity: 10,
-        })),
-      };
-    }
+  getAvailableQuantity: async (bookId: string): Promise<number> => {
+    const result = await stockService.checkStockForCart(bookId, 1);
+    return result.data.availableQuantity;
   },
 };
+
 
 // ===========================================
 // Order Service (REST)

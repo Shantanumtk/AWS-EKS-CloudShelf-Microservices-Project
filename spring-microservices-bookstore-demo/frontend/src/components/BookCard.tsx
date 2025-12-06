@@ -1,19 +1,17 @@
 'use client';
 
-import React, { useState } from 'react';
-import Image from 'next/image';
-import { Heart, ShoppingCart, Star } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Book } from '@/types';
-import { formatPrice } from '@/lib/utils';
+import React from 'react';
 import Link from 'next/link';
+import { Star, ShoppingCart, Heart } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Book } from '@/types';
+import { useCart } from '@/contexts/CartContext';
 
 interface BookCardProps {
   book: Book;
-  onAddToCart: (book: Book) => void;
-  onAddToWishlist: (book: Book) => void;
+  onAddToCart?: (book: Book) => void;
+  onAddToWishlist?: (book: Book) => void;
 }
 
 export const BookCard: React.FC<BookCardProps> = ({
@@ -21,115 +19,107 @@ export const BookCard: React.FC<BookCardProps> = ({
   onAddToCart,
   onAddToWishlist,
 }) => {
-  const [isWishlisted, setIsWishlisted] = useState(false);
-  const [isAdding, setIsAdding] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = React.useState(false);
+  const { addToCart } = useCart();
 
-  const handleAddToCart = async () => {
-    setIsAdding(true);
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     try {
-      await onAddToCart(book);
+      setIsAddingToCart(true);
+      
+      // Use CartContext which handles everything
+      await addToCart(book._id, 1, book.title, book.price);
+      
+      // Notify parent (optional)
+      if (onAddToCart) {
+        onAddToCart(book);
+      }
+
+      // Visual feedback
+      alert(`Added "${book.title}" to cart!`);
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+      alert('Failed to add to cart. Please try again.');
     } finally {
-      setIsAdding(false);
+      setIsAddingToCart(false);
     }
   };
 
-  const handleWishlist = () => {
-    setIsWishlisted(!isWishlisted);
-    onAddToWishlist(book);
+  const handleAddToWishlist = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (onAddToWishlist) {
+      onAddToWishlist(book);
+    }
   };
 
   return (
-    <Card className="flex flex-col overflow-hidden hover:shadow-lg transition-shadow duration-200">
-      {/* Cover Image */}
-      <div className="relative overflow-hidden bg-muted h-64 w-full">
-        <Link href={`/books/${book._id}`}>
-          <Image
-            src={book.coverImage || 'https://via.placeholder.com/200x300'}
-            alt={book.title}
-            fill
-            className="object-cover hover:scale-105 transition-transform duration-300 cursor-pointer"
-            unoptimized={true}
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          />
-        </Link>
-
-        {!book.inStock && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-            <Badge variant="destructive" className="text-lg px-4 py-2">
-              Out of Stock
-            </Badge>
+    <Link href={`/books/${book._id}`}>
+      <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer group">
+        <CardContent className="p-4">
+          <div className="relative mb-4 aspect-[2/3] overflow-hidden rounded-lg">
+            <img
+              src={book.coverImage}
+              alt={book.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+            />
           </div>
-        )}
 
-        <button
-          onClick={handleWishlist}
-          className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-gray-100 transition-colors"
-        >
-          <Heart
-            size={20}
-            className={isWishlisted ? 'fill-red-500 text-red-500' : 'text-gray-600'}
-          />
-        </button>
-      </div>
+          <div className="space-y-2">
+            <h3 className="font-semibold line-clamp-2 min-h-[3rem]">
+              {book.title}
+            </h3>
+            <p className="text-sm text-muted-foreground line-clamp-1">
+              {book.author}
+            </p>
 
-      {/* Book Info */}
-      <CardContent className="flex-1 pt-4">
-        <Link href={`/books/${book._id}`} className="hover:text-primary transition-colors">
-          <h3 className="font-semibold text-lg line-clamp-2 mb-1">
-            {book.title}
-          </h3>
-          <CardDescription className="mb-2">{book.author}</CardDescription>
-        </Link>
+            <div className="flex items-center gap-1">
+              {[...Array(5)].map((_, i) => (
+                <Star
+                  key={i}
+                  size={14}
+                  className={
+                    i < Math.floor(book.rating)
+                      ? 'fill-primary text-primary'
+                      : 'fill-muted text-muted'
+                  }
+                />
+              ))}
+              <span className="text-sm text-muted-foreground ml-1">
+                ({book.reviewCount || 0})
+              </span>
+            </div>
 
-        {/* Rating */}
-        <div className="flex items-center gap-2 mb-3">
-          <div className="flex items-center">
-            {[...Array(5)].map((_, i) => (
-              <Star
-                key={i}
-                size={14}
-                className={
-                  i < Math.round(book.rating)
-                    ? 'fill-amber-400 text-amber-400'
-                    : 'text-gray-300'
-                }
-              />
-            ))}
+            <div className="flex items-baseline gap-2">
+              <span className="text-xl font-bold text-primary">
+                ${book.price.toFixed(2)}
+              </span>
+            </div>
           </div>
-          <span className="text-sm text-muted-foreground">
-            ({book.reviewCount})
-          </span>
-        </div>
+        </CardContent>
 
-        {/* Category & Price */}
-        <div className="flex items-center justify-between mb-4">
-          <Badge variant="secondary" className="text-xs">
-            {book.category}
-          </Badge>
-          <span className="text-xl font-bold text-primary">
-            {formatPrice(book.price)}
-          </span>
-        </div>
-
-        {/* Stock Status */}
-        {book.inStock && book.stockCount < 5 && (
-          <p className="text-xs text-orange-600 mb-2">
-            Only {book.stockCount} left in stock!
-          </p>
-        )}
-      </CardContent>
-
-      {/* Action Buttons */}
-      <CardFooter className="pt-0">
-        <Button
-          onClick={handleAddToCart}
-          disabled={!book.inStock || isAdding}
-          className="w-full gap-2"
-        >
-          <ShoppingCart size={18} />
-          {isAdding ? 'Adding...' : 'Add to Cart'}
-        </Button>
-      </CardFooter>
-    </Card>
+        <CardFooter className="p-4 pt-0 flex gap-2">
+          <Button
+            className="flex-1"
+            size="sm"
+            onClick={handleAddToCart}
+            disabled={isAddingToCart}
+          >
+            <ShoppingCart size={16} className="mr-2" />
+            {isAddingToCart ? 'Adding...' : 'Add to Cart'}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleAddToWishlist}
+          >
+            <Heart size={16} />
+          </Button>
+        </CardFooter>
+      </Card>
+    </Link>
   );
 };

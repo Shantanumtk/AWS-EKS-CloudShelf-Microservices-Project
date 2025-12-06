@@ -10,8 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Book, Review } from '@/types';
 import { bookService, reviewService, recommendationService, stockService } from '@/lib/api';
 import { Star, ShoppingCart, Heart, Loader, Package, Truck, MessageSquare, AlertTriangle } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { useCart } from '@/hooks/useCart';
+import { useAuth } from '@/contexts/AuthContext';
+import { useCart } from '@/contexts/CartContext';
 
 interface BookDetailPageProps {
   params: {
@@ -22,7 +22,7 @@ interface BookDetailPageProps {
 export default function BookDetailPage({ params }: BookDetailPageProps) {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
-  const { addToCart, cart } = useCart();
+  const { addToCart: addToCartContext } = useCart();
   
   const [book, setBook] = useState<Book | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -73,7 +73,7 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
   const checkBookStock = async () => {
     try {
       setCheckingStock(true);
-      const response = await stockService.checkStock(params.id, 1);
+      const response = await stockService.checkStockForCart(params.id, 1);
       setStockInfo({
         inStock: response.data.inStock,
         availableQuantity: response.data.availableQuantity,
@@ -93,12 +93,6 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
   const handleAddToCart = async () => {
     if (!book) return;
 
-    if (!isAuthenticated) {
-      alert('Please sign in to add items to your cart');
-      router.push('/auth/login');
-      return;
-    }
-
     // Check stock before adding
     if (stockInfo && !stockInfo.inStock) {
       alert('This item is currently out of stock');
@@ -113,33 +107,22 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
     try {
       setAddingToCart(true);
       
-      // Add to cart multiple times if quantity > 1
-      for (let i = 0; i < quantity; i++) {
-        await addToCart(book);
-      }
+      // Add to cart using CartContext
+      await addToCartContext(book._id, quantity, book.title, book.price);
       
-      console.log(`Added ${quantity}x ${book.title} to cart`);
-      
-      setTimeout(() => {
-        setAddingToCart(false);
-      }, 1000);
+      alert(`Added ${quantity}x "${book.title}" to cart!`);
     } catch (err) {
       console.error('Failed to add to cart:', err);
       alert('Failed to add item to cart. Please try again.');
+    } finally {
       setAddingToCart(false);
     }
   };
 
-  const handleAddToWishlist = async () => {
+  const handleAddToWishlist = () => {
     if (!book) return;
-    
-    if (!isAuthenticated) {
-      alert('Please sign in to add items to your wishlist');
-      router.push('/auth/login');
-      return;
-    }
-    
     console.log('Added to wishlist:', book.title);
+    alert(`Added "${book.title}" to wishlist!`);
   };
 
   const renderStars = (rating: number) => {
@@ -167,7 +150,6 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
     return (
       <div className="min-h-screen bg-background">
         <Header
-          cartCount={cart?.totalItems || 0}
           wishlistCount={0}
           onSearch={(q) => router.push(`/search?q=${q}`)}
           isAuthenticated={isAuthenticated}
@@ -185,7 +167,6 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
     return (
       <div className="min-h-screen bg-background">
         <Header
-          cartCount={cart?.totalItems || 0}
           wishlistCount={0}
           onSearch={(q) => router.push(`/search?q=${q}`)}
           isAuthenticated={isAuthenticated}
@@ -194,8 +175,8 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
           <Card>
             <CardContent className="p-12 text-center">
               <p className="text-destructive mb-4">{error || 'Book not found'}</p>
-              <Button onClick={() => router.push('/')}>
-                Back to Home
+              <Button onClick={() => router.push('/browse')}>
+                Back to Browse
               </Button>
             </CardContent>
           </Card>
@@ -207,7 +188,6 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
   return (
     <div className="min-h-screen bg-background">
       <Header
-        cartCount={cart?.totalItems || 0}
         wishlistCount={0}
         onSearch={(q) => router.push(`/search?q=${q}`)}
         isAuthenticated={isAuthenticated}
@@ -400,15 +380,13 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Customer Reviews</CardTitle>
-              {isAuthenticated && (
-                <Button
-                  variant="outline"
-                  onClick={() => router.push(`/books/${params.id}/review`)}
-                >
-                  <MessageSquare className="mr-2" size={18} />
-                  Write a Review
-                </Button>
-              )}
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/books/${params.id}/review`)}
+              >
+                <MessageSquare className="mr-2" size={18} />
+                Write a Review
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -441,15 +419,13 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
                 <p className="text-muted-foreground mb-4">
                   No reviews yet. Be the first to review this book!
                 </p>
-                {isAuthenticated && (
-                  <Button
-                    variant="outline"
-                    onClick={() => router.push(`/books/${params.id}/review`)}
-                  >
-                    <MessageSquare className="mr-2" size={18} />
-                    Write the First Review
-                  </Button>
-                )}
+                <Button
+                  variant="outline"
+                  onClick={() => router.push(`/books/${params.id}/review`)}
+                >
+                  <MessageSquare className="mr-2" size={18} />
+                  Write the First Review
+                </Button>
               </div>
             )}
           </CardContent>
@@ -464,14 +440,6 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
                 <BookCard
                   key={similarBook._id}
                   book={similarBook}
-                  onAddToCart={async (book) => {
-                    if (!isAuthenticated) {
-                      alert('Please sign in to add items to your cart');
-                      router.push('/auth/login');
-                      return;
-                    }
-                    await addToCart(book);
-                  }}
                   onAddToWishlist={() => console.log('Add to wishlist:', similarBook.title)}
                 />
               ))}

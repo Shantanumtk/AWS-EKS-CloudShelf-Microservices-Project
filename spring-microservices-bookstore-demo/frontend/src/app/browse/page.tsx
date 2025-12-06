@@ -6,21 +6,20 @@ import { Header } from '@/components/Header';
 import { BookCard } from '@/components/BookCard';
 import { Button } from '@/components/ui/button';
 import { Book } from '@/types';
-import { bookService, userService } from '@/lib/api';
+import { bookService } from '@/lib/api';
 import { Loader, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { useCart } from '@/hooks/useCart';
+import { useAuth } from '@/contexts/AuthContext';
+
 export default function BrowsePage() {
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
+  
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [hasMore, setHasMore] = useState(false);
-  
-  const { isAuthenticated, userEmail } = useAuth();
-  const { addToCart, cart } = useCart();
   
   const ITEMS_PER_PAGE = 12;
 
@@ -45,38 +44,6 @@ export default function BrowsePage() {
     }
   };
 
-  const handleAddToCart = async (book: Book) => {
-    if (!isAuthenticated) {
-      // Prompt user to login
-      alert('Please sign in to add items to your cart');
-      router.push('/auth/login');
-      return;
-    }
-
-    try {
-      await addToCart(book);
-      console.log(`Added ${book.title} to cart`);
-    } catch (err) {
-      console.error('Failed to add to cart:', err);
-      alert('Failed to add item to cart. Please try again.');
-    }
-  };
-
-  const handleAddToWishlist = async (book: Book) => {
-    if (!isAuthenticated) {
-      alert('Please sign in to add items to your wishlist');
-      router.push('/auth/login');
-      return;
-    }
-
-    try {
-      await userService.addToWishlist(userEmail!, book._id);
-      console.log(`Added ${book.title} to wishlist`);
-    } catch (err) {
-      console.error('Failed to add to wishlist:', err);
-    }
-  };
-
   const handlePreviousPage = () => {
     if (page > 1) {
       setPage(page - 1);
@@ -95,7 +62,6 @@ export default function BrowsePage() {
     return (
       <div className="min-h-screen bg-background">
         <Header
-          cartCount={cart?.totalItems || 0}
           wishlistCount={0}
           onSearch={(q) => router.push(`/search?q=${q}`)}
           isAuthenticated={isAuthenticated}
@@ -113,7 +79,6 @@ export default function BrowsePage() {
     return (
       <div className="min-h-screen bg-background">
         <Header
-          cartCount={cart?.totalItems || 0}
           wishlistCount={0}
           onSearch={(q) => router.push(`/search?q=${q}`)}
           isAuthenticated={isAuthenticated}
@@ -131,7 +96,6 @@ export default function BrowsePage() {
   return (
     <div className="min-h-screen bg-background">
       <Header
-        cartCount={cart?.totalItems || 0}
         wishlistCount={0}
         onSearch={(q) => router.push(`/search?q=${q}`)}
         isAuthenticated={isAuthenticated}
@@ -162,8 +126,7 @@ export default function BrowsePage() {
                 <BookCard
                   key={book._id}
                   book={book}
-                  onAddToCart={handleAddToCart}
-                  onAddToWishlist={handleAddToWishlist}
+                  onAddToWishlist={() => console.log('Add to wishlist:', book.title)}
                 />
               ))}
             </div>

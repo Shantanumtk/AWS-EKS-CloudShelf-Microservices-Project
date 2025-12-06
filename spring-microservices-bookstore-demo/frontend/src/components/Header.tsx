@@ -8,9 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCart } from '@/contexts/CartContext';
 
 interface HeaderProps {
-  cartCount: number;
   wishlistCount: number;
   onSearch: (query: string) => void;
   isAuthenticated: boolean;
@@ -18,12 +18,12 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({
-  cartCount,
   wishlistCount,
   onSearch,
   isAuthenticated,
   userName,
 }) => {
+  const { cartCount } = useCart(); // Get cartCount from CartContext
   const router = useRouter();
   const { logout } = useAuth(); // Get logout from AuthContext
   const [searchQuery, setSearchQuery] = useState('');
