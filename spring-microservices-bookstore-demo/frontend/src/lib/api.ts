@@ -66,7 +66,7 @@ const SERVER_HOST = process.env.MINIKUBE_API_HOST || 'http://127.0.0.1:40029';
 // 2. Determine the GraphQL Endpoint
 // - Server: Talk directly to Minikube (bypassing the Proxy to avoid "Relative URL" errors)
 // - Browser: Talk to the Next.js Proxy (to avoid CORS errors)
-const GRAPHQL_ENDPOINT = 'http://localhost:8080/api/graphql';
+const GRAPHQL_ENDPOINT = process.env.NEXT_PUBLIC_API_GATEWAY_URL || '/api/graphql';
 // 3. Determine the REST Base URL
 // Same logic as above
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
