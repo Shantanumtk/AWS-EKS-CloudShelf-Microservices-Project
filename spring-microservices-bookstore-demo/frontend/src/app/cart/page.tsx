@@ -13,7 +13,7 @@ import { useCart } from '@/contexts/CartContext';
 
 export default function CartPage() {
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, userEmail } = useAuth();
   const { refreshCart } = useCart();
   
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -28,6 +28,12 @@ export default function CartPage() {
   const total = subtotal + shipping + tax;
 
   const getUserId = () => {
+    // If user is authenticated, use their Cognito email
+    if (isAuthenticated && userEmail) {
+      return userEmail;
+    }
+    
+    // Fallback to guest ID for unauthenticated users
     if (typeof window === 'undefined') return 'guest-temp';
     let userId = localStorage.getItem('guestUserId');
     if (!userId) {
@@ -39,7 +45,7 @@ export default function CartPage() {
 
   useEffect(() => {
     fetchCart();
-  }, []);
+  }, [isAuthenticated, userEmail]);
 
   const fetchCart = async () => {
     try {

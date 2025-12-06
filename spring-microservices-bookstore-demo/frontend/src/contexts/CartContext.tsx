@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { cartService } from '@/lib/api';
 import { CartItem } from '@/types'; 
+import { useAuth } from '@/contexts/AuthContext';
 
 interface CartContextType {
   cartCount: number;
@@ -15,8 +16,15 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cartCount, setCartCount] = useState(0);
+  const { isAuthenticated, userEmail } = useAuth();
 
   const getUserId = () => {
+    // If user is authenticated, use their Cognito email
+    if (isAuthenticated && userEmail) {
+      return userEmail;
+    }
+    
+    // Fallback to guest ID for unauthenticated users
     if (typeof window === 'undefined') return 'guest-temp';
     
     let userId = localStorage.getItem('guestUserId');
@@ -59,7 +67,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     refreshCart();
-  }, []);
+  }, [isAuthenticated, userEmail]);
 
   return (
     <CartContext.Provider value={{ cartCount, refreshCart, addToCart, clearCart }}>

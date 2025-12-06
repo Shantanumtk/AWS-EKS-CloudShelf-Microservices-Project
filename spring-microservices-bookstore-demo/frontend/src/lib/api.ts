@@ -559,7 +559,7 @@ export const stockService = {
       skuCodes.forEach(code => params.append('skuCode', code));
       
       const response = await restFetch<BackendStockCheckResponse[]>(
-        `/proxy/stockcheck?${params.toString()}`
+        `/stockcheck?${params.toString()}`
       );
       return { data: response };
     } catch (error) {
@@ -589,7 +589,7 @@ export const stockService = {
 
     try {
       const response = await restFetch<BackendCartStockCheckResponse>(
-        `/proxy/stock/check?bookId=${encodeURIComponent(bookId)}&quantity=${quantity}`
+        `/stock/check?bookId=${encodeURIComponent(bookId)}&quantity=${quantity}`
       );
       return { data: transformBackendStockCheck(response) };
     } catch (error) {
@@ -688,7 +688,7 @@ export const cartService = {
       const response = await restFetch<{ 
         items: BackendCartItem[]; 
         totalPrice: number 
-      }>(`/proxy/cart/${userId}`);
+      }>(`/cart/${userId}`);
 
       // 2. Map it to the Frontend 'CartItem' format (which needs a 'book' object)
       const items: CartItem[] = (response.items || []).map((item) => ({
@@ -745,7 +745,7 @@ export const cartService = {
     }
 
     try {
-      await restFetch(`/proxy/cart/${userId}/add`, {
+      await restFetch(`/cart/${userId}/add`, {
         method: 'POST',
         body: JSON.stringify({
           bookId,
@@ -802,7 +802,7 @@ export const cartService = {
     }
 
     try {
-      await restFetch(`/proxy/cart/${userId}/remove/${bookId}`, {
+      await restFetch(`/cart/${userId}/remove/${bookId}`, {
         method: 'DELETE',
       });
       return { data: { success: true } };
@@ -826,7 +826,7 @@ export const cartService = {
     }
 
     try {
-      await restFetch(`/proxy/cart/${userId}/clear`, {
+      await restFetch(`/cart/${userId}/clear`, {
         method: 'DELETE',
       });
       return { data: { success: true } };
@@ -848,7 +848,7 @@ export const cartService = {
     }
 
     try {
-      const response = await restFetch<string>(`/proxy/cart/${userId}/checkout`, {
+      const response = await restFetch<string>(`/cart/${userId}/checkout`, {
         method: 'POST',
       });
       
@@ -924,7 +924,7 @@ export const reviewService = {
       // You may need to maintain a mapping or use a numeric ID
       const numericId = stringToNumberId(bookId);
       const backendReviews = await restFetch<BackendReviewResponse[]>(
-        `/proxy/reviews/book/${numericId}`
+        `/reviews/book/${numericId}`
       );
 
       // Transform backend responses to frontend format
@@ -959,7 +959,7 @@ export const reviewService = {
 
     try {
       const response = await restFetch<{ bookId: number; averageRating: number }>(
-        `/proxy/reviews/book/${bookId}/average-rating`
+        `/reviews/book/${bookId}/average-rating`
       );
 
       return {
@@ -1007,7 +1007,7 @@ export const reviewService = {
 
       logDebug('Creating review with payload:', payload);
 
-      const response = await restFetch<BackendReviewResponse>('/proxy/reviews', {
+      const response = await restFetch<BackendReviewResponse>('/reviews', {
         method: 'POST',
         body: JSON.stringify(payload),
       });
@@ -1040,7 +1040,7 @@ export const reviewService = {
     }
 
     try {
-      await restFetch<void>(`/proxy/reviews/${reviewId}`, {
+      await restFetch<void>(`/reviews/${reviewId}`, {
         method: 'DELETE',
       });
       return { data: { success: true } };
@@ -1156,7 +1156,7 @@ export const userService = {
 
     try {
       const backendProfile = await restFetch<BackendUserProfileResponse>(
-        `/proxy/profiles/${userId}`
+        `/profiles/${userId}`
       );
 
       const user = transformBackendUserProfile(backendProfile);
@@ -1180,7 +1180,7 @@ export const userService = {
 
     try {
       const backendProfiles = await restFetch<BackendUserProfileResponse[]>(
-        '/proxy/profiles'
+        '/profiles'
       );
 
       const users = backendProfiles.map(transformBackendUserProfile);
@@ -1225,7 +1225,7 @@ export const userService = {
       logDebug('Creating profile with payload:', payload);
 
       const response = await restFetch<BackendUserProfileResponse>(
-        '/proxy/profiles',
+        '/profiles',
         {
           method: 'POST',
           body: JSON.stringify(payload),
@@ -1275,7 +1275,7 @@ export const userService = {
 
       // Using POST instead of PUT
       await restFetch<BackendUserProfileResponse>(
-        '/proxy/profiles', 
+        '/profiles', 
         {
           method: 'POST',
           body: JSON.stringify(payload),
@@ -1300,7 +1300,7 @@ export const userService = {
     }
 
     try {
-      await restFetch<void>(`/proxy/profiles/${userId}`, {
+      await restFetch<void>(`/profiles/${userId}`, {
         method: 'DELETE',
       });
       return { data: { success: true } };
