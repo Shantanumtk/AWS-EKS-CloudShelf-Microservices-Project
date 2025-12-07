@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { User, Address } from '@/types';
 import { userService } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   Loader, 
   User as UserIcon, 
@@ -26,10 +27,28 @@ type Tab = 'profile' | 'addresses' | 'preferences';
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { isAuthenticated, userEmail } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('profile');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Helper function to get the correct user ID
+  const getUserId = () => {
+    // If user is authenticated, use their Cognito email
+    if (isAuthenticated && userEmail) {
+      return userEmail;
+    }
+    
+    // Fallback to guest ID for unauthenticated users
+    if (typeof window === 'undefined') return 'guest-temp';
+    let visitorId = localStorage.getItem('guestUserId');
+    if (!visitorId) {
+      visitorId = `guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      localStorage.setItem('guestUserId', visitorId);
+    }
+    return visitorId;
+  };
 
   // User data
   const [user, setUser] = useState<User | null>(null);
@@ -82,7 +101,7 @@ export default function ProfilePage() {
       setLoading(true);
       setError(null);
 
-      const response = await userService.getProfile('user-123');
+      const response = await userService.getProfile(getUserId());
       const userData = response.data;
 
       setUser(userData);
@@ -108,7 +127,7 @@ export default function ProfilePage() {
   const handleSaveProfile = async () => {
     try {
       setSaving(true);
-      await userService.updateProfile('user-123', {
+      await userService.updateProfile(getUserId(), {
         name: profileForm.name,
         email: profileForm.email,
         avatar: profileForm.avatar,
@@ -150,14 +169,14 @@ export default function ProfilePage() {
       if (addingAddress) {
         // Add new address
         const newAddresses = [...addresses, { ...addressForm, _id: Date.now().toString() }];
-        await userService.updateProfile('user-123', { addresses: newAddresses });
+        await userService.updateProfile(getUserId(), { addresses: newAddresses });
         setAddresses(newAddresses);
       } else if (editingAddress) {
         // Update existing address
         const updatedAddresses = addresses.map(addr =>
           addr._id === editingAddress ? addressForm : addr
         );
-        await userService.updateProfile('user-123', { addresses: updatedAddresses });
+        await userService.updateProfile(getUserId(), { addresses: updatedAddresses });
         setAddresses(updatedAddresses);
       }
 
@@ -183,7 +202,7 @@ export default function ProfilePage() {
   const handleDeleteAddress = async (addressId: string) => {
     try {
       const updatedAddresses = addresses.filter(addr => addr._id !== addressId);
-      await userService.updateProfile('user-123', { addresses: updatedAddresses });
+      await userService.updateProfile(getUserId(), { addresses: updatedAddresses });
       setAddresses(updatedAddresses);
     } catch (err) {
       console.error('Failed to delete address:', err);
@@ -193,7 +212,7 @@ export default function ProfilePage() {
   const handleSavePreferences = async () => {
     try {
       setSaving(true);
-      await userService.updateProfile('user-123', { preferences });
+      await userService.updateProfile(getUserId(), { preferences });
       await loadUserData();
     } catch (err) {
       console.error('Failed to save preferences:', err);

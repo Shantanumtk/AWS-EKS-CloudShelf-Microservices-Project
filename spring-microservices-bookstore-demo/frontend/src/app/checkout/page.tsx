@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { CartItem, Address } from '@/types';
 import { cartService, userService, orderService, paymentService, shippingService } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   Loader, 
   MapPin, 
@@ -24,9 +25,27 @@ type CheckoutStep = 'address' | 'payment' | 'review' | 'complete';
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const { isAuthenticated, userEmail } = useAuth();
   const [currentStep, setCurrentStep] = useState<CheckoutStep>('address');
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  
+  // Helper function to get the correct user ID
+  const getUserId = () => {
+    // If user is authenticated, use their Cognito email
+    if (isAuthenticated && userEmail) {
+      return userEmail;
+    }
+    
+    // Fallback to guest ID for unauthenticated users
+    if (typeof window === 'undefined') return 'guest-temp';
+    let visitorId = localStorage.getItem('guestUserId');
+    if (!visitorId) {
+      visitorId = `guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      localStorage.setItem('guestUserId', visitorId);
+    }
+    return visitorId;
+  };
   
   // Cart data
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -72,13 +91,13 @@ export default function CheckoutPage() {
       setLoading(true);
       
       // Load cart
-      const cartResponse = await cartService.getCart('user-123');
+      const cartResponse = await cartService.getCart(getUserId());
       setCartItems(cartResponse.data.items);
       const cartSubtotal = cartResponse.data.items.reduce((sum, item) => sum + item.subtotal, 0);
       setSubtotal(cartSubtotal);
       
       // Load saved addresses
-      const profileResponse = await userService.getProfile('user-123');
+      const profileResponse = await userService.getProfile(getUserId());
       setAddresses(profileResponse.data.addresses || []);
       
       // Set default address if exists
@@ -150,7 +169,7 @@ export default function CheckoutPage() {
       }));
       
       // Create order
-      const orderResponse = await orderService.createOrder('user-123', items, JSON.stringify(address));
+      const orderResponse = await orderService.createOrder(getUserId(), items, JSON.stringify(address));
       const newOrderId = orderResponse.data.orderId;
       
       // Create payment intent

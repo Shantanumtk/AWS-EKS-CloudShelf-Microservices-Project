@@ -8,15 +8,34 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Book } from '@/types';
 import { recommendationService, bookService } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { Loader, Sparkles, Heart, TrendingUp, BookOpen } from 'lucide-react';
 
 export default function RecommendationsPage() {
   const router = useRouter();
+  const { isAuthenticated, userEmail } = useAuth();
   const [personalizedBooks, setPersonalizedBooks] = useState<Book[]>([]);
   const [trendingBooks, setTrendingBooks] = useState<Book[]>([]);
   const [newReleases, setNewReleases] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Helper function to get the correct user ID
+  const getUserId = () => {
+    // If user is authenticated, use their Cognito email
+    if (isAuthenticated && userEmail) {
+      return userEmail;
+    }
+    
+    // Fallback to guest ID for unauthenticated users
+    if (typeof window === 'undefined') return 'guest-temp';
+    let visitorId = localStorage.getItem('guestUserId');
+    if (!visitorId) {
+      visitorId = `guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      localStorage.setItem('guestUserId', visitorId);
+    }
+    return visitorId;
+  };
 
   useEffect(() => {
     fetchRecommendations();
@@ -28,7 +47,7 @@ export default function RecommendationsPage() {
       setError(null);
 
       // Fetch personalized recommendations
-      const recoResponse = await recommendationService.getUserRecommendations('user-123');
+      const recoResponse = await recommendationService.getUserRecommendations(getUserId());
       setPersonalizedBooks(recoResponse.data.slice(0, 4));
 
       // Fetch all books for trending and new releases
