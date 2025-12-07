@@ -19,9 +19,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, userEmail } = useAuth();
 
   const getUserId = () => {
-    // If user is authenticated, use their Cognito email
+    // If user is authenticated, use their Cognito email (URL-encoded)
     if (isAuthenticated && userEmail) {
-      return userEmail;
+      return encodeURIComponent(userEmail);
     }
     
     // Fallback to guest ID for unauthenticated users
