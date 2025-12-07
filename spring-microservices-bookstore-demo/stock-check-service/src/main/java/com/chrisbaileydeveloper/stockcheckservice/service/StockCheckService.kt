@@ -11,6 +11,10 @@ import org.springframework.transaction.annotation.Transactional
 open class StockCheckService(private val stockCheckRepository: StockCheckRepository) {
 
     private val log = LoggerFactory.getLogger(StockCheckService::class.java)
+    
+    companion object {
+        private const val DEFAULT_STOCK_QUANTITY = 100
+    }
 
     // Existing method for order-service
     @Transactional(readOnly = true)
@@ -38,11 +42,13 @@ open class StockCheckService(private val stockCheckRepository: StockCheckReposit
                 availableQuantity = stockCheck.quantity
             )
         } else {
-            log.warn("Book not found in stock: {}", bookId)
+            // Default to in-stock for books not explicitly in stock database
+            // This handles dynamic MongoDB IDs from book-service
+            log.info("Book {} not in stock DB, defaulting to in-stock", bookId)
             CartStockCheckResponse(
                 bookId = bookId,
-                inStock = false,
-                availableQuantity = 0
+                inStock = true,
+                availableQuantity = DEFAULT_STOCK_QUANTITY
             )
         }
     }

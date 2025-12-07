@@ -98,4 +98,27 @@ class StockCheckServiceApplicationTests {
             }
         }
     }
+
+    @Test
+    fun shouldDefaultToInStockForUnknownBooks() {
+        // Test that unknown book IDs (like MongoDB generated IDs) default to in-stock
+        val unknownBookId = "507f1f77bcf86cd799439011" // Example MongoDB ObjectId
+        val response = stockCheckService.checkStockForCart(unknownBookId, 1)
+
+        assertThat(response.bookId).isEqualTo(unknownBookId)
+        assertThat(response.inStock).isTrue
+        assertThat(response.availableQuantity).isEqualTo(100)
+    }
+
+    @Test
+    fun shouldReturnCorrectStockForKnownBooks() {
+        // Test that known books return their actual stock status
+        val inStockResponse = stockCheckService.checkStockForCart("design_patterns_gof", 1)
+        assertThat(inStockResponse.inStock).isTrue
+        assertThat(inStockResponse.availableQuantity).isEqualTo(100)
+
+        val outOfStockResponse = stockCheckService.checkStockForCart("mythical_man_month", 1)
+        assertThat(outOfStockResponse.inStock).isFalse
+        assertThat(outOfStockResponse.availableQuantity).isEqualTo(0)
+    }
 }
