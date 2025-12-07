@@ -11,6 +11,10 @@ import org.springframework.transaction.annotation.Transactional
 open class StockCheckService(private val stockCheckRepository: StockCheckRepository) {
 
     private val log = LoggerFactory.getLogger(StockCheckService::class.java)
+    
+    companion object {
+        private const val DEFAULT_STOCK_QUANTITY = 100
+    }
 
     // Existing method for order-service
     @Transactional(readOnly = true)
@@ -44,7 +48,7 @@ open class StockCheckService(private val stockCheckRepository: StockCheckReposit
             CartStockCheckResponse(
                 bookId = bookId,
                 inStock = true,
-                availableQuantity = 100
+                availableQuantity = DEFAULT_STOCK_QUANTITY
             )
         }
     }
