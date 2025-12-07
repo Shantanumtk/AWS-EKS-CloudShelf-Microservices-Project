@@ -6,49 +6,50 @@
 
 @layer base {
   :root {
-    /* Warm, literary palette - deep gold, cream, warm brown */
-    --background: 39 100% 97%;
-    --foreground: 20 30% 10%;
-    --card: 0 0% 100%;
-    --card-foreground: 20 30% 10%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 20 30% 10%;
-    --muted: 39 100% 92%;
-    --muted-foreground: 20 10% 45%;
-    --accent: 38 92% 50%;
-    --accent-foreground: 39 100% 97%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 39 70% 88%;
-    --input: 39 70% 88%;
-    --ring: 38 92% 50%;
-    --radius: 0.375rem;
-    --primary: 38 92% 50%;
-    --primary-foreground: 39 100% 97%;
-    --secondary: 24 80% 55%;
-    --secondary-foreground: 39 100% 97%;
+    /* ✨ WARM, LITERARY PALETTE - Deep gold, cream, warm brown */
+    --background: 39 100% 97%;           /* Warm cream background */
+    --foreground: 20 30% 10%;            /* Dark brown text */
+    --card: 0 0% 100%;                   /* White cards */
+    --card-foreground: 20 30% 10%;       /* Dark brown card text */
+    --popover: 0 0% 100%;                /* White popovers */
+    --popover-foreground: 20 30% 10%;    /* Dark brown popover text */
+    --muted: 39 100% 92%;                /* Light cream muted */
+    --muted-foreground: 20 10% 45%;      /* Medium brown muted text */
+    --accent: 38 92% 50%;                /* Rich gold accent */
+    --accent-foreground: 39 100% 97%;    /* Cream on gold */
+    --destructive: 0 84.2% 60.2%;        /* Red for errors */
+    --destructive-foreground: 210 40% 98%; /* White on red */
+    --border: 39 70% 88%;                /* Light gold border */
+    --input: 39 70% 88%;                 /* Light gold input border */
+    --ring: 38 92% 50%;                  /* Gold focus ring */
+    --radius: 0.375rem;                  /* Border radius */
+    --primary: 38 92% 50%;               /* Deep gold primary */
+    --primary-foreground: 39 100% 97%;   /* Cream on gold */
+    --secondary: 24 80% 55%;             /* Warm terracotta secondary */
+    --secondary-foreground: 39 100% 97%; /* Cream on terracotta */
   }
 
   .dark {
-    --background: 20 20% 8%;
-    --foreground: 39 100% 95%;
-    --card: 20 20% 12%;
-    --card-foreground: 39 100% 95%;
-    --popover: 20 20% 12%;
-    --popover-foreground: 39 100% 95%;
-    --muted: 20 20% 22%;
-    --muted-foreground: 39 30% 65%;
-    --accent: 38 92% 55%;
-    --accent-foreground: 20 20% 8%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 20 20% 22%;
-    --input: 20 20% 22%;
-    --ring: 38 92% 50%;
-    --primary: 38 92% 55%;
-    --primary-foreground: 20 20% 8%;
-    --secondary: 24 80% 55%;
-    --secondary-foreground: 20 20% 8%;
+    /* 🌙 DARK MODE - Warm dark browns with gold accents */
+    --background: 20 20% 8%;             /* Very dark brown */
+    --foreground: 39 100% 95%;           /* Light cream text */
+    --card: 20 20% 12%;                  /* Dark brown cards */
+    --card-foreground: 39 100% 95%;      /* Light cream card text */
+    --popover: 20 20% 12%;               /* Dark brown popovers */
+    --popover-foreground: 39 100% 95%;   /* Light cream popover text */
+    --muted: 20 20% 22%;                 /* Medium dark brown */
+    --muted-foreground: 39 30% 65%;      /* Muted cream text */
+    --accent: 38 92% 55%;                /* Bright gold accent */
+    --accent-foreground: 20 20% 8%;      /* Dark on gold */
+    --destructive: 0 62.8% 30.6%;        /* Dark red */
+    --destructive-foreground: 210 40% 98%; /* White on red */
+    --border: 20 20% 22%;                /* Dark brown border */
+    --input: 20 20% 22%;                 /* Dark brown input border */
+    --ring: 38 92% 50%;                  /* Gold focus ring */
+    --primary: 38 92% 55%;               /* Bright gold primary */
+    --primary-foreground: 20 20% 8%;     /* Dark on gold */
+    --secondary: 24 80% 55%;             /* Warm terracotta */
+    --secondary-foreground: 20 20% 8%;   /* Dark on terracotta */
   }
 }
 

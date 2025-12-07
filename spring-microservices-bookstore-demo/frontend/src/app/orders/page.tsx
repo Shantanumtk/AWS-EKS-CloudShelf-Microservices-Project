@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Order } from '@/types';
 import { orderService, shippingService } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   Loader, 
   Package, 
@@ -22,11 +23,29 @@ import {
 
 export default function OrdersPage() {
   const router = useRouter();
+  const { isAuthenticated, userEmail } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [trackingInfo, setTrackingInfo] = useState<{ [key: string]: any }>({});
+
+  // Helper function to get the correct user ID
+  const getUserId = () => {
+    // If user is authenticated, use their Cognito email (URL-encoded)
+    if (isAuthenticated && userEmail) {
+      return encodeURIComponent(userEmail);
+    }
+    
+    // Fallback to guest ID for unauthenticated users
+    if (typeof window === 'undefined') return 'guest-temp';
+    let visitorId = localStorage.getItem('guestUserId');
+    if (!visitorId) {
+      visitorId = `guest-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+      localStorage.setItem('guestUserId', visitorId);
+    }
+    return visitorId;
+  };
 
   useEffect(() => {
     fetchOrders();
@@ -37,7 +56,7 @@ export default function OrdersPage() {
       setLoading(true);
       setError(null);
 
-      const response = await orderService.getUserOrders('user-123');
+      const response = await orderService.getUserOrders(getUserId());
       setOrders(response.data);
     } catch (err) {
       setError('Failed to load orders');

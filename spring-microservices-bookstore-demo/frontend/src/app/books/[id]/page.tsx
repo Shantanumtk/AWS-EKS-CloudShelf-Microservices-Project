@@ -8,8 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Book, Review } from '@/types';
-import { bookService, reviewService, recommendationService } from '@/lib/api';
-import { Star, ShoppingCart, Heart, Loader, Package, Truck } from 'lucide-react';
+import { bookService, reviewService, recommendationService, stockService } from '@/lib/api';
+import { Star, ShoppingCart, Heart, Loader, Package, Truck, MessageSquare, AlertTriangle } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useCart } from '@/contexts/CartContext';
 
 interface BookDetailPageProps {
   params: {
@@ -19,6 +21,9 @@ interface BookDetailPageProps {
 
 export default function BookDetailPage({ params }: BookDetailPageProps) {
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
+  const { addToCart: addToCartContext } = useCart();
+  
   const [book, setBook] = useState<Book | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [similarBooks, setSimilarBooks] = useState<Book[]>([]);
@@ -26,11 +31,18 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
-  const [addedToCart, setAddedToCart] = useState(false);
+  
+  // Stock state
+  const [stockInfo, setStockInfo] = useState<{
+    inStock: boolean;
+    availableQuantity: number;
+  } | null>(null);
+  const [checkingStock, setCheckingStock] = useState(false);
 
   useEffect(() => {
     if (params.id) {
       fetchBookDetails();
+      checkBookStock();
     }
   }, [params.id]);
 
@@ -41,11 +53,11 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
 
       // Fetch book details
       const bookResponse = await bookService.getBookById(params.id);
-      setBook(bookResponse.data);
+      setBook(bookResponse.data!);
 
       // Fetch reviews
       const reviewsResponse = await reviewService.getBookReviews(params.id);
-      setReviews(reviewsResponse.data.slice(0, 5)); // Show top 5 reviews
+      setReviews(reviewsResponse.data.slice(0, 5));
 
       // Fetch similar/recommended books
       const recoResponse = await recommendationService.getBookRecommendations(params.id);
@@ -58,26 +70,59 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
     }
   };
 
+  const checkBookStock = async () => {
+    try {
+      setCheckingStock(true);
+      const response = await stockService.checkStockForCart(params.id, 1);
+      setStockInfo({
+        inStock: response.data.inStock,
+        availableQuantity: response.data.availableQuantity,
+      });
+    } catch (err) {
+      console.error('Failed to check stock:', err);
+      // Fallback to assuming in stock
+      setStockInfo({
+        inStock: true,
+        availableQuantity: 10,
+      });
+    } finally {
+      setCheckingStock(false);
+    }
+  };
+
   const handleAddToCart = async () => {
     if (!book) return;
 
+    // Check stock before adding
+    if (stockInfo && !stockInfo.inStock) {
+      alert('This item is currently out of stock');
+      return;
+    }
+
+    if (stockInfo && quantity > stockInfo.availableQuantity) {
+      alert(`Only ${stockInfo.availableQuantity} items available in stock`);
+      return;
+    }
+
     try {
       setAddingToCart(true);
-      // This will use dummy data or call cart service based on env
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
-      setAddedToCart(true);
-      setTimeout(() => setAddedToCart(false), 2000);
-      console.log(`Added ${quantity}x ${book.title} to cart`);
+      
+      // Add to cart using CartContext
+      await addToCartContext(book._id, quantity, book.title, book.price);
+      
+      alert(`Added ${quantity}x "${book.title}" to cart!`);
     } catch (err) {
       console.error('Failed to add to cart:', err);
+      alert('Failed to add item to cart. Please try again.');
     } finally {
       setAddingToCart(false);
     }
   };
 
-  const handleAddToWishlist = async () => {
+  const handleAddToWishlist = () => {
     if (!book) return;
     console.log('Added to wishlist:', book.title);
+    alert(`Added "${book.title}" to wishlist!`);
   };
 
   const renderStars = (rating: number) => {
@@ -97,14 +142,17 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
     );
   };
 
+  // Calculate actual stock count (use API data if available)
+  const actualStockCount = stockInfo ? stockInfo.availableQuantity : book?.stockCount || 0;
+  const isInStock = stockInfo ? stockInfo.inStock : book?.inStock || false;
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
         <Header
-          cartCount={0}
           wishlistCount={0}
           onSearch={(q) => router.push(`/search?q=${q}`)}
-          isAuthenticated={false}
+          isAuthenticated={isAuthenticated}
         />
         <main className="container mx-auto px-4 py-12">
           <div className="flex justify-center items-center h-64">
@@ -119,17 +167,16 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
     return (
       <div className="min-h-screen bg-background">
         <Header
-          cartCount={0}
           wishlistCount={0}
           onSearch={(q) => router.push(`/search?q=${q}`)}
-          isAuthenticated={false}
+          isAuthenticated={isAuthenticated}
         />
         <main className="container mx-auto px-4 py-12">
           <Card>
             <CardContent className="p-12 text-center">
               <p className="text-destructive mb-4">{error || 'Book not found'}</p>
-              <Button onClick={() => router.push('/')}>
-                Back to Home
+              <Button onClick={() => router.push('/browse')}>
+                Back to Browse
               </Button>
             </CardContent>
           </Card>
@@ -141,10 +188,9 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
   return (
     <div className="min-h-screen bg-background">
       <Header
-        cartCount={0}
         wishlistCount={0}
         onSearch={(q) => router.push(`/search?q=${q}`)}
-        isAuthenticated={false}
+        isAuthenticated={isAuthenticated}
       />
 
       <main className="container mx-auto px-4 py-8">
@@ -191,16 +237,23 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
 
               {/* Stock Status */}
               <div className="flex items-center gap-2 mb-6">
-                {book.inStock ? (
+                {checkingStock ? (
+                  <>
+                    <Loader className="w-5 h-5 animate-spin" />
+                    <span className="text-muted-foreground">
+                      Checking stock...
+                    </span>
+                  </>
+                ) : isInStock ? (
                   <>
                     <Package className="w-5 h-5 text-green-600" />
                     <span className="text-green-600 font-semibold">
-                      In Stock ({book.stockCount} available)
+                      In Stock ({actualStockCount} available)
                     </span>
                   </>
                 ) : (
                   <>
-                    <Package className="w-5 h-5 text-destructive" />
+                    <AlertTriangle className="w-5 h-5 text-destructive" />
                     <span className="text-destructive font-semibold">
                       Out of Stock
                     </span>
@@ -208,8 +261,18 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
                 )}
               </div>
 
+              {/* Low Stock Warning */}
+              {isInStock && actualStockCount < 5 && actualStockCount > 0 && (
+                <div className="p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg mb-6">
+                  <p className="text-sm text-orange-600 font-semibold flex items-center gap-2">
+                    <AlertTriangle size={16} />
+                    Only {actualStockCount} left in stock - order soon!
+                  </p>
+                </div>
+              )}
+
               {/* Quantity Selector */}
-              {book.inStock && (
+              {isInStock && (
                 <div className="flex items-center gap-4 mb-6">
                   <label className="font-semibold">Quantity:</label>
                   <div className="flex items-center border rounded-lg">
@@ -221,7 +284,7 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
                     </button>
                     <span className="px-6 py-2 border-x">{quantity}</span>
                     <button
-                      onClick={() => setQuantity(Math.min(book.stockCount, quantity + 1))}
+                      onClick={() => setQuantity(Math.min(actualStockCount, quantity + 1))}
                       className="px-4 py-2 hover:bg-muted"
                     >
                       +
@@ -236,15 +299,13 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
                   size="lg"
                   className="flex-1"
                   onClick={handleAddToCart}
-                  disabled={!book.inStock || addingToCart}
+                  disabled={!isInStock || addingToCart || checkingStock}
                 >
                   {addingToCart ? (
                     <>
                       <Loader className="animate-spin mr-2" size={20} />
                       Adding...
                     </>
-                  ) : addedToCart ? (
-                    <>Added to Cart ✓</>
                   ) : (
                     <>
                       <ShoppingCart className="mr-2" size={20} />
@@ -315,12 +376,21 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
         </Card>
 
         {/* Reviews Section */}
-        {reviews.length > 0 && (
-          <Card className="mb-12">
-            <CardHeader>
+        <Card className="mb-12">
+          <CardHeader>
+            <div className="flex items-center justify-between">
               <CardTitle>Customer Reviews</CardTitle>
-            </CardHeader>
-            <CardContent>
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/books/${params.id}/review`)}
+              >
+                <MessageSquare className="mr-2" size={18} />
+                Write a Review
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {reviews.length > 0 ? (
               <div className="space-y-6">
                 {reviews.map((review) => (
                   <div key={review._id} className="border-b last:border-0 pb-6 last:pb-0">
@@ -344,9 +414,22 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
                   </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        )}
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground mb-4">
+                  No reviews yet. Be the first to review this book!
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => router.push(`/books/${params.id}/review`)}
+                >
+                  <MessageSquare className="mr-2" size={18} />
+                  Write the First Review
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Similar Books */}
         {similarBooks.length > 0 && (
@@ -357,7 +440,6 @@ export default function BookDetailPage({ params }: BookDetailPageProps) {
                 <BookCard
                   key={similarBook._id}
                   book={similarBook}
-                  onAddToCart={() => console.log('Add to cart:', similarBook.title)}
                   onAddToWishlist={() => console.log('Add to wishlist:', similarBook.title)}
                 />
               ))}

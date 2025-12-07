@@ -8,16 +8,35 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Book } from '@/types';
 import { userService, bookService, cartService, recommendationService } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { Loader, Heart, ShoppingCart, Trash2 } from 'lucide-react';
 
 export default function WishlistPage() {
   const router = useRouter();
+  const { isAuthenticated, userEmail } = useAuth();
   const [wishlistBooks, setWishlistBooks] = useState<Book[]>([]);
   const [recommendations, setRecommendations] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [addingToCart, setAddingToCart] = useState<string | null>(null);
+
+  // Helper function to get the correct user ID
+  const getUserId = () => {
+    // If user is authenticated, use their Cognito email (URL-encoded)
+    if (isAuthenticated && userEmail) {
+      return encodeURIComponent(userEmail);
+    }
+    
+    // Fallback to guest ID for unauthenticated users
+    if (typeof window === 'undefined') return 'guest-temp';
+    let visitorId = localStorage.getItem('guestUserId');
+    if (!visitorId) {
+      visitorId = `guest-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+      localStorage.setItem('guestUserId', visitorId);
+    }
+    return visitorId;
+  };
 
   useEffect(() => {
     fetchWishlist();
@@ -29,7 +48,7 @@ export default function WishlistPage() {
       setError(null);
 
       // Get wishlist book IDs
-      const wishlistResponse = await userService.getWishlist('user-123');
+      const wishlistResponse = await userService.getWishlist(getUserId());
       const bookIds = wishlistResponse.data;
 
       if (bookIds.length === 0) {
@@ -46,7 +65,7 @@ export default function WishlistPage() {
       setWishlistBooks(books);
 
       // Fetch recommendations based on wishlist
-      const recoResponse = await recommendationService.getUserRecommendations('user-123');
+      const recoResponse = await recommendationService.getUserRecommendations(getUserId());
       setRecommendations(recoResponse.data.slice(0, 4));
     } catch (err) {
       setError('Failed to load wishlist');
@@ -59,7 +78,7 @@ export default function WishlistPage() {
   const handleRemoveFromWishlist = async (bookId: string) => {
     try {
       setRemovingId(bookId);
-      await userService.removeFromWishlist('user-123', bookId);
+      await userService.removeFromWishlist(getUserId(), bookId);
       setWishlistBooks(books => books.filter(book => book._id !== bookId));
     } catch (err) {
       console.error('Failed to remove from wishlist:', err);
@@ -71,7 +90,7 @@ export default function WishlistPage() {
   const handleAddToCart = async (book: Book) => {
     try {
       setAddingToCart(book._id);
-      await cartService.addToCart('user-123', book._id, 1);
+      await cartService.addToCart(getUserId(), book._id, 1);
       
       // Optionally remove from wishlist after adding to cart
       await handleRemoveFromWishlist(book._id);
@@ -88,7 +107,7 @@ export default function WishlistPage() {
   const handleAddAllToCart = async () => {
     try {
       const promises = wishlistBooks.map(book =>
-        cartService.addToCart('user-123', book._id, 1)
+        cartService.addToCart(getUserId(), book._id, 1)
       );
       await Promise.all(promises);
       
@@ -291,11 +310,11 @@ export default function WishlistPage() {
                       key={book._id}
                       book={book}
                       onAddToCart={async (b) => {
-                        await cartService.addToCart('user-123', b._id, 1);
+                        await cartService.addToCart(getUserId(), b._id, 1);
                         console.log(`Added ${b.title} to cart`);
                       }}
                       onAddToWishlist={async (b) => {
-                        await userService.addToWishlist('user-123', b._id);
+                        await userService.addToWishlist(getUserId(), b._id);
                         setWishlistBooks(prev => [...prev, b]);
                         console.log(`Added ${b.title} to wishlist`);
                       }}

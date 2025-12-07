@@ -4,6 +4,7 @@ import { twMerge } from 'tailwind-merge';
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
 export function stringToNumberId(id: string): number {
   // If it's already a number in string form ("123"), just parse it
   const parsed = parseInt(id, 10);
@@ -12,12 +13,16 @@ export function stringToNumberId(id: string): number {
   // Otherwise, hash the string to a deterministic number
   let hash = 0;
   for (let i = 0; i < id.length; i++) {
-    hash = ((hash << 5) - hash) + id.charCodeAt(i);
+    hash = ((hash << 5) - hash) + id. charCodeAt(i);
     hash |= 0; // Convert to 32bit integer
   }
   return Math.abs(hash);
 }
-export const formatPrice = (price: number): string => {
+
+export const formatPrice = (price: number | undefined | null): string => {
+  if (price === undefined || price === null) {
+    return '$0.00';
+  }
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
@@ -29,18 +34,18 @@ export const formatDate = (date: string | Date): string => {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-  }).format(new Date(date));
+  }). format(new Date(date));
 };
 
 export const truncateText = (text: string, length: number): string => {
   if (text.length <= length) return text;
-  return text.substring(0, length) + '...';
+  return text. substring(0, length) + '...';
 };
 
 export const getInitials = (name: string): string => {
   return name
     .split(' ')
-    .map((n) => n[0])
+    . map((n) => n[0])
     .join('')
     .toUpperCase();
 };

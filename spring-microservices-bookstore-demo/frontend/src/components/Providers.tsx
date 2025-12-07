@@ -2,9 +2,9 @@
 
 import { Amplify } from 'aws-amplify';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { CartProvider } from '@/contexts/CartContext';
 
 // Initialize the Connection to AWS Cognito
-// This must run before any other Auth code
 Amplify.configure({
   Auth: {
     Cognito: {
@@ -15,5 +15,29 @@ Amplify.configure({
 });
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  return <AuthProvider>{children}</AuthProvider>;
+  return (
+    <AuthProvider>
+      <CartProvider>
+        {children}
+      </CartProvider>
+    </AuthProvider>
+  );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

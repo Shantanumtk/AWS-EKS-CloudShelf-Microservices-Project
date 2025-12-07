@@ -6,11 +6,14 @@ import { Header } from '@/components/Header';
 import { BookCard } from '@/components/BookCard';
 import { Button } from '@/components/ui/button';
 import { Book } from '@/types';
-import { bookService, cartService, userService } from '@/lib/api';
+import { bookService } from '@/lib/api';
 import { Loader, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function BrowsePage() {
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
+  
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,24 +44,6 @@ export default function BrowsePage() {
     }
   };
 
-  const handleAddToCart = async (book: Book) => {
-    try {
-      await cartService.addToCart('user-123', book._id, 1);
-      console.log(`Added ${book.title} to cart`);
-    } catch (err) {
-      console.error('Failed to add to cart:', err);
-    }
-  };
-
-  const handleAddToWishlist = async (book: Book) => {
-    try {
-      await userService.addToWishlist('user-123', book._id);
-      console.log(`Added ${book.title} to wishlist`);
-    } catch (err) {
-      console.error('Failed to add to wishlist:', err);
-    }
-  };
-
   const handlePreviousPage = () => {
     if (page > 1) {
       setPage(page - 1);
@@ -77,10 +62,9 @@ export default function BrowsePage() {
     return (
       <div className="min-h-screen bg-background">
         <Header
-          cartCount={0}
           wishlistCount={0}
           onSearch={(q) => router.push(`/search?q=${q}`)}
-          isAuthenticated={false}
+          isAuthenticated={isAuthenticated}
         />
         <main className="container mx-auto px-4 py-12">
           <div className="flex justify-center items-center h-64">
@@ -95,10 +79,9 @@ export default function BrowsePage() {
     return (
       <div className="min-h-screen bg-background">
         <Header
-          cartCount={0}
           wishlistCount={0}
           onSearch={(q) => router.push(`/search?q=${q}`)}
-          isAuthenticated={false}
+          isAuthenticated={isAuthenticated}
         />
         <main className="container mx-auto px-4 py-12">
           <div className="text-center">
@@ -113,10 +96,9 @@ export default function BrowsePage() {
   return (
     <div className="min-h-screen bg-background">
       <Header
-        cartCount={0}
         wishlistCount={0}
         onSearch={(q) => router.push(`/search?q=${q}`)}
-        isAuthenticated={false}
+        isAuthenticated={isAuthenticated}
       />
 
       <main className="container mx-auto px-4 py-12">
@@ -144,8 +126,7 @@ export default function BrowsePage() {
                 <BookCard
                   key={book._id}
                   book={book}
-                  onAddToCart={handleAddToCart}
-                  onAddToWishlist={handleAddToWishlist}
+                  onAddToWishlist={() => console.log('Add to wishlist:', book.title)}
                 />
               ))}
             </div>

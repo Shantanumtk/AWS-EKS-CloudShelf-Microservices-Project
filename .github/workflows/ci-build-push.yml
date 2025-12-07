@@ -5,7 +5,7 @@ on:
     branches:
       - main
       - develop
-      - feature/**
+      - cart-service-frontend-merge
     paths:
       - 'spring-microservices-bookstore-demo/**'
       - '.github/workflows/ci-build-push.yml'

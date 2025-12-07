@@ -19,6 +19,7 @@ import {
   BackendOrderResponse,
   BackendReviewResponse,
   BackendUserProfileResponse,
+  CartItem,
   transformBackendBook,
   transformBackendAuthor,
   transformBackendReview,
@@ -33,8 +34,14 @@ import {
   Author,
   Review,
   User,
+  Order,
+  Address,
   SearchFilters,
   PaginatedResponse,
+  BackendStockCheckResponse,
+  BackendCartStockCheckResponse,
+  StockInfo,
+  transformBackendStockCheck,
 } from '@/types';
 
 import {
@@ -62,7 +69,6 @@ const SERVER_HOST = process.env.MINIKUBE_API_HOST || 'http://127.0.0.1:40029';
 // - Server: Talk directly to Minikube (bypassing the Proxy to avoid "Relative URL" errors)
 // - Browser: Talk to the Next.js Proxy (to avoid CORS errors)
 const GRAPHQL_ENDPOINT = process.env.NEXT_PUBLIC_API_GATEWAY_URL || '/api/graphql';
-
 // 3. Determine the REST Base URL
 // Same logic as above
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
@@ -364,7 +370,7 @@ export const bookService = {
         results = results.filter(book => book.price >= min && book.price <= max);
       }
       if (filters?.rating) {
-        results = results.filter(book => book.rating >= filters.rating);
+        results = results.filter(book => book.rating >= filters.rating!);
       }
       if (filters?.inStockOnly) {
         results = results.filter(book => book.inStock);
@@ -531,6 +537,87 @@ export const authorService = {
 };
 
 // ===========================================
+// Stock Check Service (REST)
+// ===========================================
+
+export const stockService = {
+  /**
+   * Check stock for order placement (multiple items)
+   * Endpoint: GET /api/proxy/stockcheck?skuCode=item1,item2
+   * Used by: order-service
+   */
+  checkStock: async (skuCodes: string[]): Promise<{ data: BackendStockCheckResponse[] }> => {
+    if (USE_DUMMY_DATA) {
+      return {
+        data: skuCodes.map(code => ({
+          skuCode: code,
+          isInStock: code !== 'mythical_man_month',
+        })),
+      };
+    }
+
+    try {
+      const params = new URLSearchParams();
+      skuCodes.forEach(code => params.append('skuCode', code));
+      
+      const response = await restFetch<BackendStockCheckResponse[]>(
+        `/stockcheck?${params.toString()}`
+      );
+      return { data: response };
+    } catch (error) {
+      console.error('[API] checkStock failed:', error);
+      return { data: [] };
+    }
+  },
+
+  /**
+   * Check stock for cart (single item with quantity)
+   * Endpoint: GET /api/proxy/stock/check?bookId=xxx&quantity=1
+   * Used by: cart-service, product pages
+   */
+  checkStockForCart: async (
+    bookId: string,
+    quantity: number = 1
+  ): Promise<{ data: StockInfo }> => {
+    if (USE_DUMMY_DATA) {
+      return {
+        data: {
+          bookId,
+          inStock: bookId !== 'mythical_man_month',
+          availableQuantity: bookId === 'mythical_man_month' ? 0 : 100,
+        },
+      };
+    }
+
+    try {
+      const response = await restFetch<BackendCartStockCheckResponse>(
+        `/stock/check?bookId=${encodeURIComponent(bookId)}&quantity=${quantity}`
+      );
+      return { data: transformBackendStockCheck(response) };
+    } catch (error) {
+      console.error('[API] checkStockForCart failed:', error);
+      return {
+        data: {
+          bookId,
+          inStock: false,
+          availableQuantity: 0,
+        },
+      };
+    }
+  },
+
+  /**
+   * Get available quantity for a book
+   * Helper method that wraps checkStockForCart
+   */
+  getAvailableQuantity: async (bookId: string): Promise<number> => {
+    const result = await stockService.checkStockForCart(bookId, 1);
+    return result.data.availableQuantity;
+  },
+};
+
+
+// ===========================================
 // Order Service (REST)
 // ===========================================
 
@@ -577,83 +664,294 @@ export const orderService = {
       return { data: null };
     }
   },
+
+  /**
+   * Create a new order
+   * Used by checkout page
+   */
+  createOrder: async (userId: string, items: { bookId: string; qty?: number; quantity?: number }[], shippingAddress: string): Promise<{ data: { orderId: string } }> => {
+    if (USE_DUMMY_DATA) {
+      const orderId = `ORD-${Date.now()}`;
+      return { data: { orderId } };
+    }
+
+    try {
+      // Transform items to match backend format
+      const orderLineItems = items.map(item => ({
+        skuCode: item.bookId,
+        qty: item.qty || item.quantity || 1,
+      }));
+
+      const orderData = {
+        orderLineItemsDtoList: orderLineItems,
+        userId,
+        shippingAddress,
+      };
+
+      const response = await restFetch<BackendOrderResponse>('/order', {
+        method: 'POST',
+        body: JSON.stringify(orderData),
+      });
+
+      return { data: { orderId: response.orderNumber || (response.id ? response.id.toString() : `ORD-${Date.now()}`) } };
+    } catch (error) {
+      console.error('[API] createOrder failed:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get orders for a user
+   * Used by orders page
+   */
+  getUserOrders: async (userId: string): Promise<{ data: Order[] }> => {
+    if (USE_DUMMY_DATA) {
+      // Return dummy orders
+      const dummyOrder: Order = {
+        _id: '1',
+        orderNumber: 'ORD-001',
+        userId,
+        items: [],
+        status: 'delivered',
+        total: 29.99,
+        subtotal: 29.99,
+        tax: 2.40,
+        shipping: 0,
+        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        trackingNumber: 'TRK-12345',
+      };
+      return {
+        data: [dummyOrder],
+      };
+    }
+
+    try {
+      // Backend might not have a getUserOrders endpoint
+      // Return empty array for now
+      console.log('[API] getUserOrders - endpoint not implemented');
+      return { data: [] };
+    } catch (error) {
+      console.error('[API] getUserOrders failed:', error);
+      return { data: [] };
+    }
+  },
 };
 
 // ===========================================
 // Cart Service (Local/Dummy)
 // ===========================================
 
+interface BackendCartItem {
+  bookId: string;
+  title: string;
+  quantity: number;
+  price: number;
+}
+
 export const cartService = {
   getCart: async (userId: string) => {
     if (USE_DUMMY_DATA) {
       const books = getDummyBooks(1, 3).data;
+      // ... keep dummy logic ...
+      return { data: { userId, items: [], totalItems: 0, totalPrice: 0 } as any };
+    }
+
+    try {
+      // 1. Fetch the raw data (BackendCartItem format)
+      const response = await restFetch<{ 
+        items: BackendCartItem[]; 
+        totalPrice: number 
+      }>(`/cart/${userId}`);
+
+      // 2. Map it to the Frontend 'CartItem' format (which needs a 'book' object)
+      const items: CartItem[] = (response.items || []).map((item) => ({
+        bookId: item.bookId,
+        // We construct a partial "Book" object so the UI can render the card
+        book: {
+          _id: item.bookId,
+          title: item.title,
+          description: '', // Not returned by Cart Service
+          price: item.price,
+          author: 'Unknown', // Not returned by Cart Service
+          category: 'General',
+          coverImage: `https://via.placeholder.com/200x300?text=${encodeURIComponent(item.title.slice(0, 15))}`,
+          rating: 0,
+          reviewCount: 0,
+          inStock: true,
+          stockCount: 10,
+        },
+        quantity: item.quantity,
+        price: item.price,
+        subtotal: item.price * item.quantity,
+      }));
+
       return {
         data: {
           userId,
-          items: books.map((book, idx) => ({
-            bookId: book._id,
-            book,
-            quantity: idx + 1,
-            price: book.price,
-            subtotal: book.price * (idx + 1),
-          })),
-          totalItems: books.length,
-          totalPrice: books.reduce((sum, book, idx) => sum + book.price * (idx + 1), 0),
+          items,
+          totalItems: items.reduce((sum, item) => sum + item.quantity, 0),
+          totalPrice: response.totalPrice || 0,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         },
       };
+    } catch (error) {
+      console.warn('[API] getCart failed:', error);
+      return { data: { userId, items: [], totalItems: 0, totalPrice: 0, createdAt: '', updatedAt: '' } };
     }
-    // Cart service not implemented in backend
-    return {
-      data: {
-        userId,
-        items: [],
-        totalItems: 0,
-        totalPrice: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    };
   },
 
-  addToCart: async (_userId: string, _bookId: string, _qty: number) => {
-    return { data: { success: true } };
+  /**
+   * Add item to cart
+   * Endpoint: POST /api/cart/{userId}/add
+   * Body: { bookId, title, quantity, price }
+   */
+  addToCart: async (
+    userId: string,
+    bookId: string,
+    quantity: number,
+    title: string,
+    price: number
+  ): Promise<{ data: { success: boolean } }> => {
+    if (USE_DUMMY_DATA) {
+      return { data: { success: true } };
+    }
+
+    try {
+      await restFetch(`/cart/${userId}/add`, {
+        method: 'POST',
+        body: JSON.stringify({
+          bookId,
+          title,
+          quantity,
+          price,
+        }),
+      });
+      return { data: { success: true } };
+    } catch (error) {
+      console.error('[CartService] addToCart failed:', error);
+      return { data: { success: false } };
+    }
   },
 
-  updateCartItem: async (_userId: string, _bookId: string, _qty: number) => {
-    return { data: { success: true } };
+  /**
+   * Update cart item quantity
+   */
+  updateCartItem: async (
+    userId: string,
+    bookId: string,
+    quantity: number,
+    title: string,
+    price: number
+  ): Promise<{ data: { success: boolean } }> => {
+    if (USE_DUMMY_DATA) {
+      return { data: { success: true } };
+    }
+
+    try {
+      // Remove first
+      await cartService.removeCartItem(userId, bookId);
+      // Re-add with new quantity
+      if (quantity > 0) {
+        await cartService.addToCart(userId, bookId, quantity, title, price);
+      }
+      return { data: { success: true } };
+    } catch (error) {
+      console.error('[CartService] updateCartItem failed:', error);
+      return { data: { success: false } };
+    }
   },
 
-  removeCartItem: async (_userId: string, _bookId: string) => {
-    return { data: { success: true } };
+  /**
+   * Remove item from cart
+   * Endpoint: DELETE /api/cart/{userId}/remove/{bookId}
+   */
+  removeCartItem: async (
+    userId: string,
+    bookId: string
+  ): Promise<{ data: { success: boolean } }> => {
+    if (USE_DUMMY_DATA) {
+      return { data: { success: true } };
+    }
+
+    try {
+      await restFetch(`/cart/${userId}/remove/${bookId}`, {
+        method: 'DELETE',
+      });
+      return { data: { success: true } };
+    } catch (error) {
+      console.error('[CartService] removeCartItem failed:', error);
+      return { data: { success: false } };
+    }
   },
 
   removeFromCart: async (userId: string, bookId: string) => {
     return cartService.removeCartItem(userId, bookId);
   },
 
-  checkout: async (_userId: string) => {
-    return { data: { orderId: `ORD-${Date.now()}` } };
+  /**
+   * Clear entire cart
+   * Endpoint: DELETE /api/cart/{userId}/clear
+   */
+  clearCart: async (userId: string): Promise<{ data: { success: boolean } }> => {
+    if (USE_DUMMY_DATA) {
+      return { data: { success: true } };
+    }
+
+    try {
+      await restFetch(`/cart/${userId}/clear`, {
+        method: 'DELETE',
+      });
+      return { data: { success: true } };
+    } catch (error) {
+      console.error('[CartService] clearCart failed:', error);
+      return { data: { success: false } };
+    }
+  },
+
+  /**
+   * Checkout cart
+   * Endpoint: POST /api/cart/{userId}/checkout
+   */
+  checkout: async (userId: string): Promise<{
+    data: { success: boolean; orderId?: string; message?: string };
+  }> => {
+    if (USE_DUMMY_DATA) {
+      return { data: { success: true, orderId: `ORD-${Date.now()}`, message: 'Order placed!' } };
+    }
+
+    try {
+      const response = await restFetch<string>(`/cart/${userId}/checkout`, {
+        method: 'POST',
+      });
+      
+      // Backend returns string like "Order placed successfully! Order Number: xyz"
+      const message = typeof response === 'string' ? response : 'Order placed successfully!';
+      const orderMatch = message.match(/Order Number:\s*(\S+)/i);
+      
+      return {
+        data: {
+          success: true,
+          orderId: orderMatch ? orderMatch[1] : `ORD-${Date.now()}`,
+          message,
+        },
+      };
+    } catch (error) {
+      console.error('[CartService] checkout failed:', error);
+      return {
+        data: {
+          success: false,
+          message: error instanceof Error ? error.message : 'Checkout failed',
+        },
+      };
+    }
   },
 };
-
-// ===========================================
-// Review Service (Dummy)
-// ===========================================
 
 // ===========================================
 // Review Service (REST - Hisham's reviews-service)
 // ===========================================
 // Endpoint: /api/proxy/reviews (proxied to reviews-service)
-// 
-// Backend Schema (PostgreSQL):
-// - id: BIGSERIAL PK
-// - book_id: BIGINT (⚠️ Should be string to match MongoDB Book._id)
-// - user_id: BIGINT
-// - rating: INT (1-5)
-// - comment: TEXT
-// - created_at: TIMESTAMP
 // ===========================================
 
 export const reviewService = {
@@ -699,7 +997,7 @@ export const reviewService = {
       // You may need to maintain a mapping or use a numeric ID
       const numericId = stringToNumberId(bookId);
       const backendReviews = await restFetch<BackendReviewResponse[]>(
-        `/proxy/reviews/book/${numericId}`
+        `/reviews/book/${numericId}`
       );
 
       // Transform backend responses to frontend format
@@ -734,7 +1032,7 @@ export const reviewService = {
 
     try {
       const response = await restFetch<{ bookId: number; averageRating: number }>(
-        `/proxy/reviews/book/${bookId}/average-rating`
+        `/reviews/book/${bookId}/average-rating`
       );
 
       return {
@@ -762,39 +1060,45 @@ export const reviewService = {
     userId: string,
     rating: number,
     text: string
-  ): Promise<{ data: { success: boolean; reviewId?: string } }> => {
+  ) => {
     if (USE_DUMMY_DATA) {
-      return { data: { success: true, reviewId: `review-${Date.now()}` } };
+      return { 
+        data: { 
+          success: true,
+          reviewId: `review-${Date.now()}`,
+        } 
+      };
     }
 
     try {
-      // FIX: Convert String IDs to Numbers so Postgres doesn't crash
-      const reviewPayload = {
-        book_id: stringToNumberId(bookId),
-        user_id: stringToNumberId(userId),
+      const payload = {
+        bookId: stringToNumberId(bookId),
+        userId: stringToNumberId(userId),
         rating,
         comment: text,
       };
 
-      console.log('[API] Creating review with payload:', reviewPayload);
+      logDebug('Creating review with payload:', payload);
 
-      const response = await restFetch<BackendReviewResponse>(
-        '/proxy/reviews',
-        {
-          method: 'POST',
-          body: JSON.stringify(reviewPayload),
-        }
-      );
+      const response = await restFetch<BackendReviewResponse>('/reviews', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
 
-      return {
-        data: {
+      return { 
+        data: { 
           success: true,
           reviewId: response.id.toString(),
-        },
+        } 
       };
     } catch (error) {
       console.error('[API] createReview failed:', error);
-      return { data: { success: false } };
+      return { 
+        data: { 
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to create review',
+        } 
+      };
     }
   },
 
@@ -809,7 +1113,7 @@ export const reviewService = {
     }
 
     try {
-      await restFetch<void>(`/proxy/reviews/${reviewId}`, {
+      await restFetch<void>(`/reviews/${reviewId}`, {
         method: 'DELETE',
       });
       return { data: { success: true } };
@@ -886,15 +1190,18 @@ export const searchService = {
 export const userService = {
   /**
    * Get user profile by ID
-   * Endpoint: GET /api/proxy/profiles/{userId}
+   * Profile service doesn't exist in backend - return dummy data
+   * The userId (email) is still used for identification
    */
   getProfile: async (userId: string): Promise<{ data: User }> => {
-    // Dummy data for development/fallback
+    // Profile service doesn't exist in backend - return dummy data
+    // The userId (email) is still used for identification
+    const decodedUserId = decodeURIComponent(userId);
     const dummyUser: User = {
-      _id: userId,
-      email: 'user@example.com',
-      name: 'John Doe',
-      firstName: 'John',
+      _id: decodedUserId,
+      email: decodedUserId.includes('@') ? decodedUserId : `${decodedUserId}@example.com`,
+      name: decodedUserId.includes('@') ? decodedUserId.split('@')[0] : 'User',
+      firstName: decodedUserId.includes('@') ? decodedUserId.split('@')[0] : 'User',
       lastName: 'Doe',
       avatar: undefined,
       phone: '555-123-4567',
@@ -918,23 +1225,7 @@ export const userService = {
       createdAt: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString(),
     };
 
-    if (USE_DUMMY_DATA) {
-      logDebug('Using dummy data for getProfile');
-      return { data: dummyUser };
-    }
-
-    try {
-      const backendProfile = await restFetch<BackendUserProfileResponse>(
-        `/proxy/profiles/${userId}`
-      );
-
-      const user = transformBackendUserProfile(backendProfile);
-      logDebug(`Fetched profile for user ${userId}`, user);
-      return { data: user };
-    } catch (error) {
-      console.warn('[API] getProfile failed, falling back to dummy data:', error);
-      return { data: dummyUser };
-    }
+    return { data: dummyUser };
   },
 
   /**
@@ -949,7 +1240,7 @@ export const userService = {
 
     try {
       const backendProfiles = await restFetch<BackendUserProfileResponse[]>(
-        '/proxy/profiles'
+        '/profiles'
       );
 
       const users = backendProfiles.map(transformBackendUserProfile);
@@ -994,7 +1285,7 @@ export const userService = {
       logDebug('Creating profile with payload:', payload);
 
       const response = await restFetch<BackendUserProfileResponse>(
-        '/proxy/profiles',
+        '/profiles',
         {
           method: 'POST',
           body: JSON.stringify(payload),
@@ -1015,47 +1306,17 @@ export const userService = {
 
   /**
    * Update user profile
-   * Endpoint: PUT /api/proxy/profiles/{userId} (if supported)
-   * 
-   * Note: Hisham's controller only has POST (create) and DELETE
-   * You may need to add a PUT endpoint to the backend
+   * Profile service doesn't exist - just return success
+   * In a real app, this would persist to a backend
    */
   updateProfile: async (
     userId: string,
-    data: Record<string, unknown>
+    updates: Record<string, unknown>
   ): Promise<{ data: { success: boolean } }> => {
-    if (USE_DUMMY_DATA) {
-      return { data: { success: true } };
-    }
-
-    try {
-      // Transform frontend format to backend format
-      const payload: Record<string, unknown> = {};
-      
-      if (data.firstName) payload.first_name = data.firstName;
-      if (data.lastName) payload.last_name = data.lastName;
-      if (data.email) payload.email = data.email;
-      if (data.phone) payload.phone = data.phone;
-      if (data.address) payload.address = data.address;
-      if (data.city) payload.city = data.city;
-      if (data.country) payload.country = data.country;
-
-      console.log(`[API] Updating profile ${userId} via POST:`, payload);
-
-      // Using POST instead of PUT
-      await restFetch<BackendUserProfileResponse>(
-        '/proxy/profiles', 
-        {
-          method: 'POST',
-          body: JSON.stringify(payload),
-        }
-      );
-
-      return { data: { success: true } };
-    } catch (error) {
-      console.warn('[API] updateProfile failed:', error);
-      return { data: { success: false } };
-    }
+    // Profile service doesn't exist - just return success
+    // In a real app, this would persist to a backend
+    console.log('Profile update (dummy):', userId, updates);
+    return { data: { success: true } };
   },
 
   /**
@@ -1069,7 +1330,7 @@ export const userService = {
     }
 
     try {
-      await restFetch<void>(`/proxy/profiles/${userId}`, {
+      await restFetch<void>(`/profiles/${userId}`, {
         method: 'DELETE',
       });
       return { data: { success: true } };
@@ -1106,7 +1367,7 @@ export const userService = {
 };
 
 // ===========================================
-// Pricing Service (Dummy)
+// Pricing Service (Deprecated, handled by bookservice)
 // ===========================================
 
 export const pricingService = {
@@ -1141,6 +1402,36 @@ export const pricingService = {
 // ===========================================
 
 export const shippingService = {
+  /**
+   * Get shipping quote
+   * Used by checkout page
+   */
+  getShippingQuote: async (orderId: string, address: Partial<Address>) => {
+    // Shipping service is dummy - return mock shipping rates
+    return {
+      data: {
+        orderId,
+        address,
+        standardShipping: 5.99,
+        expressShipping: 15.99,
+        freeShippingThreshold: 50,
+        estimatedDeliveryStandard: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        estimatedDeliveryExpress: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+    };
+  },
+
+  /**
+   * Get tracking information
+   * Alias for trackShipment
+   */
+  getTracking: async (trackingNumber: string) => {
+    return shippingService.trackShipment(trackingNumber);
+  },
+
+  /**
+   * Track shipment
+   */
   trackShipment: async (trackingNumber: string) => {
     return {
       data: {
@@ -1159,6 +1450,44 @@ export const shippingService = {
             timestamp: new Date().toISOString(),
           },
         ],
+      },
+    };
+  },
+};
+
+// ===========================================
+// Payment Service (Dummy)
+// ===========================================
+
+export const paymentService = {
+  /**
+   * Create payment intent
+   * Used by checkout page
+   */
+  createPaymentIntent: async (orderId: string, amount: number, currency: string) => {
+    // Payment service is dummy - return mock intent
+    return {
+      data: {
+        intentId: `pi_${Date.now()}`,
+        orderId,
+        amount,
+        currency,
+        status: 'requires_confirmation',
+      },
+    };
+  },
+
+  /**
+   * Confirm payment
+   * Used by checkout page
+   */
+  confirmPayment: async (intentId: string, paymentMethod: string) => {
+    // Payment service is dummy - return success
+    return {
+      data: {
+        intentId,
+        paymentMethod,
+        status: 'succeeded',
       },
     };
   },
@@ -1198,5 +1527,6 @@ export default {
   userService,
   pricingService,
   shippingService,
+  paymentService,
   authService,
 };
