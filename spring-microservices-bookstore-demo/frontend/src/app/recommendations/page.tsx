@@ -31,7 +31,7 @@ export default function RecommendationsPage() {
     if (typeof window === 'undefined') return 'guest-temp';
     let visitorId = localStorage.getItem('guestUserId');
     if (!visitorId) {
-      visitorId = `guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      visitorId = `guest-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
       localStorage.setItem('guestUserId', visitorId);
     }
     return visitorId;

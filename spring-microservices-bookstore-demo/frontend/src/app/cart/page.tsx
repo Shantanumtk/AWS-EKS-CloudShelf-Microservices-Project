@@ -37,7 +37,7 @@ export default function CartPage() {
     if (typeof window === 'undefined') return 'guest-temp';
     let userId = localStorage.getItem('guestUserId');
     if (!userId) {
-      userId = `guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      userId = `guest-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
       localStorage.setItem('guestUserId', userId);
     }
     return userId;
