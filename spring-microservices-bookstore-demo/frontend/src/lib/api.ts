@@ -662,6 +662,75 @@ export const orderService = {
       return { data: null };
     }
   },
+
+  /**
+   * Create a new order
+   * Used by checkout page
+   */
+  createOrder: async (userId: string, items: any[], shippingAddress: string): Promise<{ data: { orderId: string } }> => {
+    if (USE_DUMMY_DATA) {
+      const orderId = `ORD-${Date.now()}`;
+      return { data: { orderId } };
+    }
+
+    try {
+      // Transform items to match backend format
+      const orderLineItems = items.map(item => ({
+        skuCode: item.bookId,
+        qty: item.qty || item.quantity || 1,
+      }));
+
+      const orderData = {
+        orderLineItemsDtoList: orderLineItems,
+        userId,
+        shippingAddress,
+      };
+
+      const response = await restFetch<BackendOrderResponse>('/order', {
+        method: 'POST',
+        body: JSON.stringify(orderData),
+      });
+
+      return { data: { orderId: response.orderNumber || response.id.toString() } };
+    } catch (error) {
+      console.error('[API] createOrder failed:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get orders for a user
+   * Used by orders page
+   */
+  getUserOrders: async (userId: string): Promise<{ data: any[] }> => {
+    if (USE_DUMMY_DATA) {
+      // Return dummy orders
+      return {
+        data: [
+          {
+            _id: '1',
+            orderNumber: 'ORD-001',
+            userId,
+            items: [],
+            status: 'delivered',
+            total: 29.99,
+            createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+            trackingNumber: 'TRK-12345',
+          },
+        ],
+      };
+    }
+
+    try {
+      // Backend might not have a getUserOrders endpoint
+      // Return empty array for now
+      console.log('[API] getUserOrders - endpoint not implemented');
+      return { data: [] };
+    } catch (error) {
+      console.error('[API] getUserOrders failed:', error);
+      return { data: [] };
+    }
+  },
 };
 
 // ===========================================
@@ -1117,15 +1186,18 @@ export const searchService = {
 export const userService = {
   /**
    * Get user profile by ID
-   * Endpoint: GET /api/proxy/profiles/{userId}
+   * Profile service doesn't exist in backend - return dummy data
+   * The userId (email) is still used for identification
    */
   getProfile: async (userId: string): Promise<{ data: User }> => {
-    // Dummy data for development/fallback
+    // Profile service doesn't exist in backend - return dummy data
+    // The userId (email) is still used for identification
+    const decodedUserId = decodeURIComponent(userId);
     const dummyUser: User = {
-      _id: userId,
-      email: 'user@example.com',
-      name: 'John Doe',
-      firstName: 'John',
+      _id: decodedUserId,
+      email: decodedUserId.includes('@') ? decodedUserId : `${decodedUserId}@example.com`,
+      name: decodedUserId.includes('@') ? decodedUserId.split('@')[0] : 'User',
+      firstName: decodedUserId.includes('@') ? decodedUserId.split('@')[0] : 'User',
       lastName: 'Doe',
       avatar: undefined,
       phone: '555-123-4567',
@@ -1149,23 +1221,7 @@ export const userService = {
       createdAt: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString(),
     };
 
-    if (USE_DUMMY_DATA) {
-      logDebug('Using dummy data for getProfile');
-      return { data: dummyUser };
-    }
-
-    try {
-      const backendProfile = await restFetch<BackendUserProfileResponse>(
-        `/profiles/${userId}`
-      );
-
-      const user = transformBackendUserProfile(backendProfile);
-      logDebug(`Fetched profile for user ${userId}`, user);
-      return { data: user };
-    } catch (error) {
-      console.warn('[API] getProfile failed, falling back to dummy data:', error);
-      return { data: dummyUser };
-    }
+    return { data: dummyUser };
   },
 
   /**
@@ -1246,47 +1302,17 @@ export const userService = {
 
   /**
    * Update user profile
-   * Endpoint: PUT /api/proxy/profiles/{userId} (if supported)
-   * 
-   * Note: Hisham's controller only has POST (create) and DELETE
-   * You may need to add a PUT endpoint to the backend
+   * Profile service doesn't exist - just return success
+   * In a real app, this would persist to a backend
    */
   updateProfile: async (
     userId: string,
-    data: Record<string, unknown>
+    updates: any
   ): Promise<{ data: { success: boolean } }> => {
-    if (USE_DUMMY_DATA) {
-      return { data: { success: true } };
-    }
-
-    try {
-      // Transform frontend format to backend format
-      const payload: Record<string, unknown> = {};
-      
-      if (data.firstName) payload.first_name = data.firstName;
-      if (data.lastName) payload.last_name = data.lastName;
-      if (data.email) payload.email = data.email;
-      if (data.phone) payload.phone = data.phone;
-      if (data.address) payload.address = data.address;
-      if (data.city) payload.city = data.city;
-      if (data.country) payload.country = data.country;
-
-      console.log(`[API] Updating profile ${userId} via POST:`, payload);
-
-      // Using POST instead of PUT
-      await restFetch<BackendUserProfileResponse>(
-        '/profiles', 
-        {
-          method: 'POST',
-          body: JSON.stringify(payload),
-        }
-      );
-
-      return { data: { success: true } };
-    } catch (error) {
-      console.warn('[API] updateProfile failed:', error);
-      return { data: { success: false } };
-    }
+    // Profile service doesn't exist - just return success
+    // In a real app, this would persist to a backend
+    console.log('Profile update (dummy):', userId, updates);
+    return { data: { success: true } };
   },
 
   /**
@@ -1372,6 +1398,36 @@ export const pricingService = {
 // ===========================================
 
 export const shippingService = {
+  /**
+   * Get shipping quote
+   * Used by checkout page
+   */
+  getShippingQuote: async (orderId: string, address: any) => {
+    // Shipping service is dummy - return mock shipping rates
+    return {
+      data: {
+        orderId,
+        address,
+        standardShipping: 5.99,
+        expressShipping: 15.99,
+        freeShippingThreshold: 50,
+        estimatedDeliveryStandard: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        estimatedDeliveryExpress: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+    };
+  },
+
+  /**
+   * Get tracking information
+   * Alias for trackShipment
+   */
+  getTracking: async (trackingNumber: string) => {
+    return shippingService.trackShipment(trackingNumber);
+  },
+
+  /**
+   * Track shipment
+   */
   trackShipment: async (trackingNumber: string) => {
     return {
       data: {
@@ -1390,6 +1446,44 @@ export const shippingService = {
             timestamp: new Date().toISOString(),
           },
         ],
+      },
+    };
+  },
+};
+
+// ===========================================
+// Payment Service (Dummy)
+// ===========================================
+
+export const paymentService = {
+  /**
+   * Create payment intent
+   * Used by checkout page
+   */
+  createPaymentIntent: async (orderId: string, amount: number, currency: string) => {
+    // Payment service is dummy - return mock intent
+    return {
+      data: {
+        intentId: `pi_${Date.now()}`,
+        orderId,
+        amount,
+        currency,
+        status: 'requires_confirmation',
+      },
+    };
+  },
+
+  /**
+   * Confirm payment
+   * Used by checkout page
+   */
+  confirmPayment: async (intentId: string, paymentMethod: string) => {
+    // Payment service is dummy - return success
+    return {
+      data: {
+        intentId,
+        paymentMethod,
+        status: 'succeeded',
       },
     };
   },
@@ -1429,5 +1523,6 @@ export default {
   userService,
   pricingService,
   shippingService,
+  paymentService,
   authService,
 };
