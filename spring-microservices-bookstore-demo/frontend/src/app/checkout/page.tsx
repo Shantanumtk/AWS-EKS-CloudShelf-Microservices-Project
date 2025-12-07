@@ -32,9 +32,9 @@ export default function CheckoutPage() {
   
   // Helper function to get the correct user ID
   const getUserId = () => {
-    // If user is authenticated, use their Cognito email
+    // If user is authenticated, use their Cognito email (URL-encoded)
     if (isAuthenticated && userEmail) {
-      return userEmail;
+      return encodeURIComponent(userEmail);
     }
     
     // Fallback to guest ID for unauthenticated users
