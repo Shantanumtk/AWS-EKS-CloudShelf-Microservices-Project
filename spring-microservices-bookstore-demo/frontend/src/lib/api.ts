@@ -34,6 +34,8 @@ import {
   Author,
   Review,
   User,
+  Order,
+  Address,
   SearchFilters,
   PaginatedResponse,
   BackendStockCheckResponse,
@@ -667,7 +669,7 @@ export const orderService = {
    * Create a new order
    * Used by checkout page
    */
-  createOrder: async (userId: string, items: any[], shippingAddress: string): Promise<{ data: { orderId: string } }> => {
+  createOrder: async (userId: string, items: { bookId: string; qty?: number; quantity?: number }[], shippingAddress: string): Promise<{ data: { orderId: string } }> => {
     if (USE_DUMMY_DATA) {
       const orderId = `ORD-${Date.now()}`;
       return { data: { orderId } };
@@ -691,7 +693,7 @@ export const orderService = {
         body: JSON.stringify(orderData),
       });
 
-      return { data: { orderId: response.orderNumber || response.id.toString() } };
+      return { data: { orderId: response.orderNumber || (response.id ? response.id.toString() : `ORD-${Date.now()}`) } };
     } catch (error) {
       console.error('[API] createOrder failed:', error);
       throw error;
@@ -702,22 +704,24 @@ export const orderService = {
    * Get orders for a user
    * Used by orders page
    */
-  getUserOrders: async (userId: string): Promise<{ data: any[] }> => {
+  getUserOrders: async (userId: string): Promise<{ data: Order[] }> => {
     if (USE_DUMMY_DATA) {
       // Return dummy orders
+      const dummyOrder: Order = {
+        _id: '1',
+        orderNumber: 'ORD-001',
+        userId,
+        items: [],
+        status: 'delivered',
+        total: 29.99,
+        subtotal: 29.99,
+        tax: 2.40,
+        shipping: 0,
+        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        trackingNumber: 'TRK-12345',
+      };
       return {
-        data: [
-          {
-            _id: '1',
-            orderNumber: 'ORD-001',
-            userId,
-            items: [],
-            status: 'delivered',
-            total: 29.99,
-            createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-            trackingNumber: 'TRK-12345',
-          },
-        ],
+        data: [dummyOrder],
       };
     }
 
@@ -1307,7 +1311,7 @@ export const userService = {
    */
   updateProfile: async (
     userId: string,
-    updates: any
+    updates: Record<string, unknown>
   ): Promise<{ data: { success: boolean } }> => {
     // Profile service doesn't exist - just return success
     // In a real app, this would persist to a backend
@@ -1402,7 +1406,7 @@ export const shippingService = {
    * Get shipping quote
    * Used by checkout page
    */
-  getShippingQuote: async (orderId: string, address: any) => {
+  getShippingQuote: async (orderId: string, address: Partial<Address>) => {
     // Shipping service is dummy - return mock shipping rates
     return {
       data: {
