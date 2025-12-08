@@ -140,7 +140,7 @@ export default function Home() {
               Join thousands of readers discovering their next favorite book
             </p>
             {!isAuthenticated ? (
-              <Link href="/register">
+              <Link href="/signup">
                 <Button size="lg" variant="secondary" className="text-lg px-8 py-6">
                   Sign Up Now - It's Free!
                 </Button>
@@ -191,12 +191,12 @@ export default function Home() {
               <h3 className="font-bold mb-4">Support</h3>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="/help" className="text-muted-foreground hover:text-primary">
+                  <Link href="/about" className="text-muted-foreground hover:text-primary">
                     Help Center
                   </Link>
                 </li>
                 <li>
-                  <Link href="/contact" className="text-muted-foreground hover:text-primary">
+                  <Link href="/about" className="text-muted-foreground hover:text-primary">
                     Contact Us
                   </Link>
                 </li>
@@ -206,12 +206,12 @@ export default function Home() {
               <h3 className="font-bold mb-4">Legal</h3>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="/terms" className="text-muted-foreground hover:text-primary">
+                  <Link href="/about" className="text-muted-foreground hover:text-primary">
                     Terms of Service
                   </Link>
                 </li>
                 <li>
-                  <Link href="/privacy" className="text-muted-foreground hover:text-primary">
+                  <Link href="/about" className="text-muted-foreground hover:text-primary">
                     Privacy Policy
                   </Link>
                 </li>
