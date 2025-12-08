@@ -11,23 +11,15 @@ class DataLoader(private val stockCheckRepository: StockCheckRepository) : Comma
         // Clear existing data to avoid duplicates on restart
         if (stockCheckRepository.count() == 0L) {
             val books = listOf(
-                // All books from book-service DataLoader
-                StockCheck(skuCode = "Design Patterns: Elements of Reusable Object-Oriented Software", quantity = 100),
-                StockCheck(skuCode = "The Pragmatic Programmer: Your Journey to Mastery", quantity = 100),
-                StockCheck(skuCode = "Clean Code: A Handbook of Agile Software Craftsmanship", quantity = 100),
-                StockCheck(skuCode = "Refactoring: Improving the Design of Existing Code", quantity = 100),
-                StockCheck(skuCode = "Code Complete: A Practical Handbook of Software Construction", quantity = 100),
-                
-                // Keep legacy SKU codes for backward compatibility
-                StockCheck(skuCode = "design_patterns_gof", quantity = 100),
-                StockCheck(skuCode = "pragmatic_programmer", quantity = 100),
-                StockCheck(skuCode = "clean_code", quantity = 100),
-                StockCheck(skuCode = "refactoring", quantity = 100),
-                StockCheck(skuCode = "code_complete", quantity = 100),
+                // Famous books matching book-service DataLoader
+                StockCheck(skuCode = "To Kill a Mockingbird", quantity = 50),
+                StockCheck(skuCode = "1984", quantity = 75),
+                StockCheck(skuCode = "Pride and Prejudice", quantity = 60),
+                StockCheck(skuCode = "The Great Gatsby", quantity = 80),
+                StockCheck(skuCode = "One Hundred Years of Solitude", quantity = 40),
                 
                 // Test book with zero stock
-                StockCheck(skuCode = "mythical_man_month", quantity = 0),
-                StockCheck(skuCode = "The Mythical Man-Month", quantity = 0)
+                StockCheck(skuCode = "out_of_stock_test", quantity = 0)
             )
             
             stockCheckRepository.saveAll(books)

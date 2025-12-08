@@ -1,0 +1,39 @@
+{
+  "mcpServers": {
+    "jenkins": {
+      "command": "/Users/shantanu/.nvm/versions/node/v22.16.0/bin/npx",
+      "args": [
+        "-y", "mcp-remote",
+        "http://localhost:8080/mcp-server/sse",
+        "--transport", "sse-only",
+        "--header", "Authorization: Basic c2hhbnRhbnU6MTFiMjU3NTQzMTY1NjViYTE2MWVjYTYwZmE0MWUwNzFlMg=="
+      ],
+      "env": {},
+      "autoApprove": []
+    },
+    "kubernetes": {
+      "command": "/Users/shantanu/.nvm/versions/node/v22.16.0/bin/npx",
+      "args": [
+        "-y", "mcp-remote",
+        "http://174.129.240.254:8080/kubernetes/sse",
+        "--allow-http"
+      ]
+    },
+    "prometheus": {
+      "command": "/Users/shantanu/.nvm/versions/node/v22.16.0/bin/npx",
+      "args": [
+        "-y", "mcp-remote",
+        "http://174.129.240.254:8080/prometheus/sse",
+        "--allow-http"
+      ]
+    },
+    "grafana": {
+      "command": "/Users/shantanu/.nvm/versions/node/v22.16.0/bin/npx",
+      "args": [
+        "-y", "mcp-remote",
+        "http://174.129.240.254:8080/grafana/sse",
+        "--allow-http"
+      ]
+    }
+  }
+}

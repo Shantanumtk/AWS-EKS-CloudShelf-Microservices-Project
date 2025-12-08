@@ -20,11 +20,11 @@ public class DataLoader implements CommandLineRunner {
         authorRepository.count()
                 .filter(count -> count == 0)
                 .flatMapMany(count -> {
-                    Author author1 = new Author(null, "Harper Lee", LocalDate.of(1926, 4, 28));
-                    Author author2 = new Author(null, "George Orwell", LocalDate.of(1903, 6, 25));
-                    Author author3 = new Author(null, "Jane Austen", LocalDate.of(1775, 12, 16));
-                    Author author4 = new Author(null, "F. Scott Fitzgerald", LocalDate.of(1896, 9, 24));
-                    Author author5 = new Author(null, "Gabriel García Márquez", LocalDate.of(1927, 3, 6));
+                    Author author1 = new Author(null, "Erich Gamma", LocalDate.of(1961, 3, 13));
+                    Author author2 = new Author(null, "Andrew Hunt", LocalDate.of(1964, 6, 11));
+                    Author author3 = new Author(null, "Robert C. Martin", LocalDate.of(1952, 12, 5));
+                    Author author4 = new Author(null, "Martin Fowler", LocalDate.of(1963, 12, 18));
+                    Author author5 = new Author(null, "Steve McConnell", LocalDate.of(1962, 1, 26));
                     return authorRepository.saveAll(Flux.just(author1, author2, author3, author4, author5));
                 })
                 .subscribe();
