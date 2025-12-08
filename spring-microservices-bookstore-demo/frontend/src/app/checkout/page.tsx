@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { CartItem, Address } from '@/types';
 import { cartService, userService, orderService, paymentService, shippingService } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCart } from '@/contexts/CartContext';
 import { 
   Loader, 
   MapPin, 
@@ -25,7 +26,8 @@ type CheckoutStep = 'address' | 'payment' | 'review' | 'complete';
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { isAuthenticated, userEmail } = useAuth();
+  const { isAuthenticated, userEmail, userName } = useAuth();
+  const { clearCart } = useCart();
   const [currentStep, setCurrentStep] = useState<CheckoutStep>('address');
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -186,6 +188,10 @@ export default function CheckoutPage() {
       );
       
       setOrderId(newOrderId);
+      
+      // Clear cart after successful order
+      await clearCart();
+      
       setCurrentStep('complete');
     } catch (err) {
       console.error('Failed to place order:', err);
@@ -209,7 +215,8 @@ export default function CheckoutPage() {
           cartCount={0}
           wishlistCount={0}
           onSearch={(q) => router.push(`/search?q=${q}`)}
-          isAuthenticated={false}
+          isAuthenticated={isAuthenticated}
+        userName={userName || undefined}
         />
         <main className="container mx-auto px-4 py-12">
           <div className="flex justify-center items-center h-64">
@@ -227,7 +234,8 @@ export default function CheckoutPage() {
           cartCount={0}
           wishlistCount={0}
           onSearch={(q) => router.push(`/search?q=${q}`)}
-          isAuthenticated={false}
+          isAuthenticated={isAuthenticated}
+        userName={userName || undefined}
         />
         <main className="container mx-auto px-4 py-12">
           <Card>
@@ -253,7 +261,8 @@ export default function CheckoutPage() {
         cartCount={cartItems.length}
         wishlistCount={0}
         onSearch={(q) => router.push(`/search?q=${q}`)}
-        isAuthenticated={false}
+        isAuthenticated={isAuthenticated}
+        userName={userName || undefined}
       />
 
       <main className="container mx-auto px-4 py-8">

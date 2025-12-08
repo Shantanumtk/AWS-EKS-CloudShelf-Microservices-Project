@@ -237,7 +237,7 @@ export default function ProfilePage() {
           cartCount={0}
           wishlistCount={0}
           onSearch={(q) => router.push(`/search?q=${q}`)}
-          isAuthenticated={false}
+          isAuthenticated={isAuthenticated}
         />
         <main className="container mx-auto px-4 py-12">
           <div className="flex justify-center items-center h-64">
@@ -255,7 +255,7 @@ export default function ProfilePage() {
           cartCount={0}
           wishlistCount={0}
           onSearch={(q) => router.push(`/search?q=${q}`)}
-          isAuthenticated={false}
+          isAuthenticated={isAuthenticated}
         />
         <main className="container mx-auto px-4 py-12">
           <Card>

@@ -9,7 +9,7 @@ interface CartContextType {
   cartCount: number;
   refreshCart: () => Promise<void>;
   addToCart: (bookId: string, quantity: number, title: string, price: number) => Promise<void>;
-  clearCart: () => void;
+  clearCart: () => Promise<void>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -61,8 +61,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const clearCart = () => {
-    setCartCount(0);
+  const clearCart = async () => {
+    try {
+      const userId = getUserId();
+      await cartService.clearCart(userId);
+      setCartCount(0);
+    } catch (error) {
+      console.error('Failed to clear cart:', error);
+    }
   };
 
   useEffect(() => {

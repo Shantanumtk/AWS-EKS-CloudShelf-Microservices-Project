@@ -8,10 +8,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Book } from '@/types';
 import { bookService } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { Loader, TrendingUp, Award, Star } from 'lucide-react';
 
 export default function BestsellersPage() {
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,7 +67,7 @@ export default function BestsellersPage() {
         cartCount={0}
         wishlistCount={0}
         onSearch={(q) => router.push(`/search?q=${q}`)}
-        isAuthenticated={false}
+        isAuthenticated={isAuthenticated}
       />
 
       <main className="container mx-auto px-4 py-12">

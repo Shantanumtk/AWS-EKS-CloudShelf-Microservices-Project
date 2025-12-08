@@ -10,11 +10,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Book, SearchFilters } from '@/types';
 import { useBookSearch } from '@/hooks/useBookSearch';
+import { useAuth } from '@/contexts/AuthContext';
 import { Loader, SlidersHorizontal, X, SearchX } from 'lucide-react';
 
 function SearchPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isAuthenticated } = useAuth();
   const initialQuery = searchParams.get('q') || '';
   const categoryParam = searchParams.get('category');
 
@@ -127,7 +129,7 @@ function SearchPageContent() {
         cartCount={0}
         wishlistCount={0}
         onSearch={(q) => router.push(`/search?q=${encodeURIComponent(q)}`)}
-        isAuthenticated={false}
+        isAuthenticated={isAuthenticated}
       />
 
       <main className="container mx-auto px-4 py-8">

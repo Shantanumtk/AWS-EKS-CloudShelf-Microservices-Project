@@ -128,7 +128,7 @@ export default function WishlistPage() {
           cartCount={0}
           wishlistCount={0}
           onSearch={(q) => router.push(`/search?q=${q}`)}
-          isAuthenticated={false}
+          isAuthenticated={isAuthenticated}
         />
         <main className="container mx-auto px-4 py-12">
           <div className="flex justify-center items-center h-64">
@@ -146,7 +146,7 @@ export default function WishlistPage() {
           cartCount={0}
           wishlistCount={wishlistBooks.length}
           onSearch={(q) => router.push(`/search?q=${q}`)}
-          isAuthenticated={false}
+          isAuthenticated={isAuthenticated}
         />
         <main className="container mx-auto px-4 py-12">
           <Card>
@@ -166,7 +166,7 @@ export default function WishlistPage() {
         cartCount={0}
         wishlistCount={wishlistBooks.length}
         onSearch={(q) => router.push(`/search?q=${q}`)}
-        isAuthenticated={false}
+        isAuthenticated={isAuthenticated}
       />
 
       <main className="container mx-auto px-4 py-12">

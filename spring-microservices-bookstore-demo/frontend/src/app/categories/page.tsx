@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { bookService } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   Loader, 
   BookOpen, 
@@ -31,6 +32,7 @@ interface CategoryInfo {
 
 export default function CategoriesPage() {
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
   const [categories, setCategories] = useState<CategoryInfo[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -141,7 +143,7 @@ export default function CategoriesPage() {
         cartCount={0}
         wishlistCount={0}
         onSearch={(q) => router.push(`/search?q=${q}`)}
-        isAuthenticated={false}
+        isAuthenticated={isAuthenticated}
       />
 
       <main className="container mx-auto px-4 py-12">
